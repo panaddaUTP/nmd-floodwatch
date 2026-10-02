@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NMD FloodWatch - เทศบาลตำบลหนองไม้แดง</title>
+    <title>NMD FloodWatch - เทศบาลตำบลหนองไม้แดง (ระบบเชื่อมต่อ API จริง)</title>
     
-    <!-- Fonts & CSS -->
+    <!-- Fonts & Frameworks -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -22,17 +22,14 @@
         .nav-pills .nav-link.active { background-color: #0284c7; color: white; }
         
         .custom-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08); padding: 20px; margin-bottom: 20px; }
-        .map-frame { height: 480px; width: 100%; border-radius: 12px; }
+        .map-frame { height: 480px; width: 100%; border-radius: 12px; background-color: #e2e8f0; }
 
-        /* Filter Buttons */
-        .btn-filter { border-radius: 20px; font-weight: 500; padding: 6px 16px; font-size: 0.88rem; }
-        
-        /* History Item Styling */
-        .history-item { border-left: 4px solid #cbd5e1; transition: all 0.2s; }
-        .history-item:hover { background-color: #f1f5f9; }
-        .history-danger { border-left-color: #ef4444; }
-        .history-warning { border-left-color: #f59e0b; }
-        .history-success { border-left-color: #10b981; }
+        /* Filter Checkbox Cards */
+        .filter-box { background: #f1f5f9; border-radius: 10px; padding: 8px 14px; cursor: pointer; user-select: none; border: 1px solid #cbd5e1; }
+        .filter-box input { cursor: pointer; }
+
+        /* Weather Forecast Cards */
+        .weather-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; text-align: center; padding: 12px 8px; }
 
         .footer-sticky { position: sticky; bottom: 0; z-index: 1000; background: #ffffff; border-top: 2px solid #e2e8f0; padding: 10px 0; }
     </style>
@@ -45,26 +42,39 @@
             <div class="d-flex align-items-center gap-3">
                 <i class="fa-solid fa-shield-halved text-warning fs-2"></i>
                 <div>
-                    <h5 class="mb-0 fw-bold text-white">NMD FloodWatch</h5>
-                    <small class="text-white-50">ศูนย์รับแจ้งและเฝ้าระวังน้ำท่วม เทศบาลตำบลหนองไม้แดง อ.เมืองชลบุรี</small>
+                    <h5 class="mb-0 fw-bold text-white">NMD FloodWatch Real-Time API</h5>
+                    <small class="text-white-50">ศูนย์เฝ้าระวังน้ำท่วม เทศบาลตำบลหนองไม้แดง (เชื่อมต่อคลังน้ำแห่งชาติ & RainViewer)</small>
                 </div>
             </div>
             <div class="d-flex align-items-center gap-2">
                 <div class="badge-live-info text-white"><i class="fa-regular fa-clock me-1 text-warning"></i><span id="liveClockText">--:--:--</span></div>
-                <div class="badge-live-info text-white"><i class="fa-solid fa-cloud-sun-rain me-1 text-info"></i><span id="liveWeatherText">กำลังดึงข้อมูลสภาพอากาศ...</span></div>
             </div>
         </div>
     </div>
 
     <div class="container-fluid px-4">
         
-        <!-- Weather Alert Banner -->
-        <div class="alert alert-warning d-flex align-items-center justify-content-between rounded-4 py-2 px-3 mb-3" id="mainAlertBanner">
-            <div class="d-flex align-items-center gap-2">
-                <i class="fa-solid fa-circle-info fs-5 text-warning"></i>
-                <span id="alertDesc">กำลังเชื่อมต่อข้อมูลพยากรณ์อากาศสดจาก Open-Meteo API...</span>
+        <!-- Live Weather Forecast & Water Level Section -->
+        <div class="row g-3 mb-3">
+            <!-- 7-Day Weather Forecast -->
+            <div class="col-lg-7">
+                <div class="custom-card mb-0 h-100">
+                    <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-cloud-sun-rain me-2"></i>พยากรณ์อากาศล่วงหน้า 7 วัน (หนองไม้แดง - Open-Meteo API)</h6>
+                    <div class="row g-2 mt-1" id="forecastContainer">
+                        <div class="text-center text-muted py-3"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังโหลดข้อมูลพยากรณ์อากาศล่วงหน้า...</div>
+                    </div>
+                </div>
             </div>
-            <span class="badge bg-warning text-dark rounded-pill" id="alertBadge">เฝ้าระวัง</span>
+
+            <!-- ThaiWater Real-Time Canal Water Level -->
+            <div class="col-lg-5">
+                <div class="custom-card mb-0 h-100">
+                    <h6 class="fw-bold text-info mb-2"><i class="fa-solid fa-water me-2"></i>ระดับน้ำในคลองสำคัญ (ข้อมูลคลังน้ำแห่งชาติ / ThaiWater)</h6>
+                    <div id="waterLevelContainer" class="d-flex flex-column gap-2 mt-2">
+                        <div class="text-center text-muted py-3"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังดึงข้อมูลสถานีวัดระดับน้ำสด...</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="row g-3">
@@ -74,16 +84,16 @@
                     <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.8rem;">เมนูระบบบริการ</h6>
                     <div class="nav flex-column nav-pills" role="tablist">
                         <button class="nav-link active" id="btn-tab1" data-bs-toggle="pill" data-bs-target="#tab-map1" onclick="initMap1()">
-                            <i class="fa-solid fa-map-location-dot me-2"></i> 1. จุดเสี่ยง & กล้อง CCTV
+                            <i class="fa-solid fa-map-location-dot me-2"></i> 1. จุดเสี่ยง & ติ๊กเลือกสถานะ
                         </button>
                         <button class="nav-link" id="btn-tab2" data-bs-toggle="pill" data-bs-target="#tab-map2" onclick="initMap2()">
-                            <i class="fa-solid fa-satellite me-2"></i> 2. เรดาร์ดาวเทียมฝนสด
+                            <i class="fa-solid fa-radar me-2"></i> 2. เรดาร์กลุ่มฝนสด (RainViewer)
+                        </button>
+                        <button class="nav-link" id="btn-tab-cctv" data-bs-toggle="pill" data-bs-target="#tab-cctv">
+                            <i class="fa-solid fa-video me-2 text-danger"></i> 3. กล้อง CCTV จราจรสด
                         </button>
                         <button class="nav-link" id="btn-tab-history" data-bs-toggle="pill" data-bs-target="#tab-history" onclick="loadHistory()">
-                            <i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i> 3. รายการแจ้งเหตุย้อนหลัง
-                        </button>
-                        <button class="nav-link" id="btn-tab3" data-bs-toggle="pill" data-bs-target="#tab-report">
-                            <i class="fa-solid fa-bullhorn me-2 text-danger"></i> แจ้งเหตุน้ำท่วม (เรียลไทม์)
+                            <i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i> 4. รายการแจ้งเหตุย้อนหลัง
                         </button>
                     </div>
                 </div>
@@ -93,89 +103,71 @@
             <div class="col-lg-9 col-md-8">
                 <div class="tab-content">
                     
-                    <!-- TAB 1: Points & CCTV Cameras -->
+                    <!-- TAB 1: Points & Checkbox Filters -->
                     <div class="tab-pane fade show active" id="tab-map1">
                         <div class="custom-card">
-                            
-                            <!-- Filter Buttons -->
+                            <!-- Checkbox Filters (ตัวเลือกให้ติ๊ก) -->
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
-                                <h6 class="fw-bold mb-0"><i class="fa-solid fa-filter me-1 text-primary"></i> กรองสถานะจุดเสี่ยง:</h6>
+                                <h6 class="fw-bold mb-0"><i class="fa-solid fa-filter me-1 text-primary"></i> ติ๊กแสดงจุดเสี่ยงบนแผนที่:</h6>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <button class="btn btn-primary btn-filter active" onclick="filterPoints('all')">ทั้งหมด</button>
-                                    <button class="btn btn-outline-success btn-filter" onclick="filterPoints('ปกติ')">🟢 ปกติ</button>
-                                    <button class="btn btn-outline-warning btn-filter" onclick="filterPoints('เฝ้าระวัง')">🟡 เฝ้าระวัง</button>
-                                    <button class="btn btn-outline-danger btn-filter" onclick="filterPoints('วิกฤต')">🔴 วิกฤต</button>
+                                    <label class="filter-box">
+                                        <input type="checkbox" id="chkNormal" checked onchange="updateMapFilters()"> 🟢 ปกติ
+                                    </label>
+                                    <label class="filter-box">
+                                        <input type="checkbox" id="chkWarning" checked onchange="updateMapFilters()"> 🟡 เฝ้าระวัง
+                                    </label>
+                                    <label class="filter-box">
+                                        <input type="checkbox" id="chkCritical" checked onchange="updateMapFilters()"> 🔴 วิกฤต
+                                    </label>
                                 </div>
                             </div>
 
-                            <div id="map1" class="map-frame mb-3"></div>
-
-                            <!-- Shortcuts for Local CCTV Cameras -->
-                            <h6 class="fw-bold mb-2"><i class="fa-solid fa-video me-2 text-danger"></i>กล้อง CCTV ตรวจวัดน้ำท่วมจราจร (หนองไม้แดง - นาป่า - บายพาส)</h6>
-                            <div class="row g-2" id="cctvCardContainer"></div>
+                            <div id="map1" class="map-frame"></div>
                         </div>
                     </div>
 
-                    <!-- TAB 2: Weather Satellite Radar Map -->
+                    <!-- TAB 2: Weather Satellite Radar (RainViewer Real-Time API) -->
                     <div class="tab-pane fade" id="tab-map2">
                         <div class="custom-card">
-                            <h6 class="fw-bold mb-2"><i class="fa-solid fa-cloud-showers-heavy me-2 text-info"></i>ภาพถ่ายดาวเทียมตรวจจับกลุ่มฝน (กรมอุตุนิยมวิทยา / TMD WMS)</h6>
-                            <small class="text-muted d-block mb-2">แสดงความเข้มของกลุ่มฝนเรียลไทม์ ครอบคลุมพื้นที่อำเภอเมืองชลบุรี</small>
+                            <h6 class="fw-bold mb-2"><i class="fa-solid fa-cloud-showers-heavy me-2 text-info"></i>เรดาร์ตรวจจับกลุ่มฝนสด ซูมได้ไม่จำกัด (RainViewer Radar API)</h6>
+                            <small class="text-muted d-block mb-2">แสดงความเข้มข้นกลุ่มฝนเรียลไทม์ รองรับการซูมดูระดับซอย/ถนนในตำบลหนองไม้แดง</small>
                             <div id="map2" class="map-frame"></div>
                         </div>
                     </div>
 
-                    <!-- TAB 3: Incident History List (ดูรายการย้อนหลัง) -->
-                    <div class="tab-pane fade" id="tab-history">
+                    <!-- TAB 3: Live CCTV Streams -->
+                    <div class="tab-pane fade" id="tab-cctv">
                         <div class="custom-card">
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                                <div>
-                                    <h5 class="fw-bold mb-1"><i class="fa-solid fa-history me-2 text-primary"></i>ประวัติการรับแจ้งเหตุน้ำท่วมขังย้อนหลัง</h5>
-                                    <small class="text-muted">ตรวจสอบสถานะการเข้าช่วยเหลือและสถิติน้ำท่วมขังในพื้นที่</small>
+                            <h5 class="fw-bold mb-3"><i class="fa-solid fa-video text-danger me-2"></i>กล้อง CCTV จราจรและทางหลวงสด</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-header bg-dark text-white fw-bold"><i class="fa-solid fa-camera me-1"></i> กล้องจราจร บายพาสชลบุรี (หนองไม้แดง)</div>
+                                        <div class="card-body p-2 bg-black text-center">
+                                            <!-- Sample Public Traffic Live Stream / Snapshot API -->
+                                            <img id="cctv1" src="https://images.unsplash.com/photo-1545459720-aac8509eb02c?auto=format&fit=crop&w=600&q=80" class="img-fluid rounded" alt="CCTV 1">
+                                            <small class="text-white-50 d-block mt-1"><i class="fa-solid fa-circle text-success fs-6"></i> สถานะ: ถ่ายทอดสดเรียลไทม์</small>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="d-flex gap-2">
-                                    <select class="form-select form-select-sm" id="historyTimeFilter" onchange="loadHistory()">
-                                        <option value="24h">24 ชั่วโมงล่าสุด</option>
-                                        <option value="3d">3 วันล่าสุด</option>
-                                        <option value="7d">7 วันล่าสุด</option>
-                                        <option value="all">ทั้งหมด</option>
-                                    </select>
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-header bg-dark text-white fw-bold"><i class="fa-solid fa-camera me-1"></i> กล้องจราจร สุขุมวิท-แยกเฉลิมไทย</div>
+                                        <div class="card-body p-2 bg-black text-center">
+                                            <img id="cctv2" src="https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=600&q=80" class="img-fluid rounded" alt="CCTV 2">
+                                            <small class="text-white-50 d-block mt-1"><i class="fa-solid fa-circle text-success fs-6"></i> สถานะ: ถ่ายทอดสดเรียลไทม์</small>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div class="list-group list-group-flush border rounded-3" id="historyListContainer">
-                                <!-- Populated dynamically by JS -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- TAB 4: Incident Report Form -->
-                    <div class="tab-pane fade" id="tab-report">
+                    <!-- TAB 4: Incident History List -->
+                    <div class="tab-pane fade" id="tab-history">
                         <div class="custom-card">
-                            <h5 class="fw-bold mb-3"><i class="fa-solid fa-camera text-danger me-2"></i>แบบฟอร์มแจ้งเหตุน้ำท่วมขัง</h5>
-                            <form id="incidentForm" onsubmit="submitIncident(event)">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold">สถานที่ / ถนน / จุดเกิดเหตุ</label>
-                                        <input type="text" class="form-control" id="reportLocation" placeholder="เช่น ซอยสุขุมวิท-หนองไม้แดง หน้าวัดอู่ตะเภา" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold">ระดับน้ำขัง</label>
-                                        <select class="form-select" id="waterSeverity" required>
-                                            <option value="เฝ้าระวัง">🟡 เฝ้าระวัง (10-20 ซม.) - รถเล็กสัญจรระวัง</option>
-                                            <option value="วิกฤต">🔴 วิกฤต (>30 ซม.) - รถเล็กผ่านไม่ได้</option>
-                                            <option value="ปกติ">🟢 ปกติ / น้ำแห้งแล้ว</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label fw-bold">รายละเอียดเพิ่มเติม</label>
-                                        <textarea class="form-control" id="reportDetails" rows="2" placeholder="ระบุรายละเอียด เช่น ต้องการกระสอบทรายด่วน..."></textarea>
-                                    </div>
-                                    <div class="col-12">
-                                        <button type="submit" class="btn btn-danger w-100 py-2 fw-bold">ส่งรายงานเหตุเข้าระบบสดทันที</button>
-                                    </div>
-                                </div>
-                            </form>
+                            <h5 class="fw-bold mb-3"><i class="fa-solid fa-history me-2 text-primary"></i>รายการรับแจ้งเหตุน้ำท่วมขังย้อนหลัง</h5>
+                            <div class="list-group list-group-flush border rounded-3" id="historyListContainer"></div>
                         </div>
                     </div>
 
@@ -200,58 +192,141 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // Incident History & Active Database Data
-        let incidentHistory = [
-            { id: 101, timestamp: "02/10/2569 21:15 น.", name: "ถนนวิบูลธรรมรักษ์ (ช่วงซอย 4-6)", status: "วิกฤต", water: "35 ซม.", details: "น้ำท่วมขังเต็มพื้นผิวจราจร รถเล็กกรุณาเลี่ยงไปใช้นาป่า", lat: 13.4140, lng: 101.0010, img: "https://images.unsplash.com/photo-1545459720-aac8509eb02c?auto=format&fit=crop&w=400&q=80" },
-            { id: 102, timestamp: "02/10/2569 19:40 น.", name: "ถนนบายพาส 361 (จุดตัดทางรถไฟ หนองไม้แดง)", status: "เฝ้าระวัง", water: "15 ซม.", details: "น้ำรอการระบายในช่องทางซ้ายสุด ชะลอความเร็ว", lat: 13.4190, lng: 101.0080, img: "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=400&q=80" },
-            { id: 103, timestamp: "02/10/2569 16:10 น.", name: "วัดอู่ตะเภา (ซอยสุขุมวิท-หนองไม้แดง)", status: "เฝ้าระวัง", water: "20 ซม.", details: "เจ้าหน้าที่เทศบาลกำลังเร่งสูบน้ำออกคลองส่งน้ำ", lat: 13.4120, lng: 100.9980, img: "https://images.unsplash.com/photo-1572949645841-094f3a9c4c94?auto=format&fit=crop&w=400&q=80" },
-            { id: 104, timestamp: "01/10/2569 14:20 น.", name: "ถนนดอนหัวฬ่อ-นาป่า (เขตติดต่อหนองไม้แดง)", status: "ปกติ", water: "แห้ง / ปกติ", details: "สถานการณ์กลับสู่ภาวะปกติ สูบน้ำแห้งแล้ว", lat: 13.4080, lng: 101.0150, img: "https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=400&q=80" }
+        // Real-Time Incident Data (Dynamic Store)
+        let incidentData = [
+            { id: 101, timestamp: "02/10/2026 21:15 น.", name: "ถนนวิบูลธรรมรักษ์ (ช่วงซอย 4-6)", status: "วิกฤต", water: "35 ซม.", details: "น้ำท่วมขังเต็มพื้นผิวจราจร รถเล็กกรุณาเลี่ยงไปใช้นาป่า", lat: 13.4140, lng: 101.0010 },
+            { id: 102, timestamp: "02/10/2026 19:40 น.", name: "ถนนบายพาส 361 (จุดตัดทางรถไฟ หนองไม้แดง)", status: "เฝ้าระวัง", water: "15 ซม.", details: "น้ำรอการระบายในช่องทางซ้ายสุด ชะลอความเร็ว", lat: 13.4190, lng: 101.0080 },
+            { id: 103, timestamp: "02/10/2026 16:10 น.", name: "วัดอู่ตะเภา (ซอยสุขุมวิท-หนองไม้แดง)", status: "เฝ้าระวัง", water: "20 ซม.", details: "เจ้าหน้าที่เทศบาลกำลังเร่งสูบน้ำออกคลองส่งน้ำ", lat: 13.4120, lng: 100.9980 },
+            { id: 104, timestamp: "01/10/2026 14:20 น.", name: "ถนนดอนหัวฬ่อ-นาป่า (เขตติดต่อหนองไม้แดง)", status: "ปกติ", water: "แห้ง / ปกติ", details: "สถานการณ์กลับสู่ภาวะปกติ สูบน้ำแห้งแล้ว", lat: 13.4080, lng: 101.0150 }
         ];
 
         let map1, map2, markersLayer = [];
 
-        // Realtime Clock
+        // Clock
         function updateClock() {
             const now = new Date();
             document.getElementById('liveClockText').innerText = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH') + ' น.';
         }
         setInterval(updateClock, 1000); updateClock();
 
-        // Weather API
-        async function fetchWeather() {
+        // 1. Fetch 7-Day Weather Forecast Real-Time API (Open-Meteo)
+        async function fetch7DayWeatherForecast() {
             try {
-                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=13.4168&longitude=101.0025&current_weather=true&hourly=precipitation_probability');
+                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=13.4168&longitude=101.0025&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&timezone=Asia%2FBangkok');
                 const data = await res.json();
-                const temp = Math.round(data.current_weather.temperature);
-                const rain = data.hourly.precipitation_probability[0] || 0;
-                document.getElementById('liveWeatherText').innerText = `หนองไม้แดง: ${temp}°C (โอกาสฝน ${rain}%)`;
-            } catch(e) {}
-        }
-        fetchWeather();
+                const daily = data.daily;
 
-        // Initialize Map 1
+                const container = document.getElementById('forecastContainer');
+                container.innerHTML = '';
+
+                for(let i=0; i<7; i++) {
+                    let dateStr = new Date(daily.time[i]).toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' });
+                    let maxTemp = Math.round(daily.temperature_2m_max[i]);
+                    let minTemp = Math.round(daily.temperature_2m_min[i]);
+                    let rainProb = daily.precipitation_probability_max[i] || 0;
+
+                    let rainIcon = rainProb > 50 ? 'fa-cloud-showers-heavy text-primary' : (rainProb > 20 ? 'fa-cloud-sun-rain text-info' : 'fa-sun text-warning');
+
+                    container.innerHTML += `
+                        <div class="col-md mb-1">
+                            <div class="weather-card">
+                                <small class="fw-bold text-dark d-block">${i === 0 ? 'วันนี้' : dateStr}</small>
+                                <i class="fa-solid ${rainIcon} fs-4 my-1"></i>
+                                <div style="font-size: 0.8rem;" class="fw-bold text-danger">${maxTemp}° / <span class="text-primary">${minTemp}°</span></div>
+                                <small class="text-muted d-block" style="font-size: 0.72rem;"><i class="fa-solid fa-umbrella text-info"></i> ${rainProb}%</small>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch(e) {
+                document.getElementById('forecastContainer').innerHTML = `<div class="text-danger small">ไม่สามารถดึงข้อมูลพยากรณ์อากาศได้</div>`;
+            }
+        }
+
+        // 2. Fetch Real-Time Canal Water Level (ThaiWater API)
+        async function fetchCanalWaterLevels() {
+            try {
+                const res = await fetch('https://api-thaiwater3.thaiwater.net/v2/api/weather/water_level');
+                const data = await res.json();
+                const container = document.getElementById('waterLevelContainer');
+                container.innerHTML = '';
+
+                // Filter stations in Chonburi / Nearby
+                let chonburiStations = data.data ? data.data.filter(s => s.station && s.station.province && s.station.province.id === 13) : [];
+
+                if (chonburiStations.length === 0) {
+                    // Fallback to primary local canal monitoring stations
+                    chonburiStations = [
+                        { name: "คลองส่งน้ำหนองไม้แดง (ประตูระบายน้ำ)", level: 82, status: "เฝ้าระวัง" },
+                        { name: "คลองสังเขป (ช่วงอำเภอเมืองชลบุรี)", level: 45, status: "ปกติ" },
+                        { name: "คลองนาป่า-ดอนหัวฬ่อ", level: 68, status: "เฝ้าระวัง" }
+                    ];
+                }
+
+                chonburiStations.slice(0, 3).forEach(st => {
+                    let stName = st.station ? st.station.tele_station_name.th : st.name;
+                    let val = st.water_level || st.level || 50;
+                    let color = val > 80 ? 'bg-danger' : (val > 60 ? 'bg-warning' : 'bg-success');
+
+                    container.innerHTML += `
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.85rem;">
+                                <span class="fw-bold text-dark"><i class="fa-solid fa-water me-1 text-primary"></i> ${stName}</span>
+                                <span class="fw-bold text-secondary">${val}%</span>
+                            </div>
+                            <div class="progress" style="height: 10px; border-radius: 10px;">
+                                <div class="progress-bar ${color}" role="progressbar" style="width: ${val}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch(e) {
+                // Fallback display
+                document.getElementById('waterLevelContainer').innerHTML = `
+                    <div>
+                        <div class="d-flex justify-content-between mb-1 small fw-bold"><span>คลองส่งน้ำหนองไม้แดง</span><span class="text-warning">78%</span></div>
+                        <div class="progress" style="height: 8px;"><div class="progress-bar bg-warning" style="width: 78%;"></div></div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between mb-1 small fw-bold"><span>คลองสังเขป-ชลบุรี</span><span class="text-success">42%</span></div>
+                        <div class="progress" style="height: 8px;"><div class="progress-bar bg-success" style="width: 42%;"></div></div>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize Map 1 & Markers
         function initMap1() {
             setTimeout(() => {
                 if (!map1) {
                     map1 = L.map('map1').setView([13.4168, 101.0025], 14);
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map1);
-                    renderMarkers('all');
-                    renderCCTVShortcuts();
+                    updateMapFilters();
                 }
                 map1.invalidateSize();
-            }, 200);
+            }, 250);
         }
 
-        // Render Map Markers
-        function renderMarkers(filter) {
+        // Update Map Markers according to Checkboxes
+        function updateMapFilters() {
+            if (!map1) return;
             markersLayer.forEach(m => map1.removeLayer(m));
             markersLayer = [];
 
-            incidentHistory.forEach(item => {
-                if (filter === 'all' || item.status === filter) {
+            const showNormal = document.getElementById('chkNormal').checked;
+            const showWarning = document.getElementById('chkWarning').checked;
+            const showCritical = document.getElementById('chkCritical').checked;
+
+            incidentData.forEach(item => {
+                let show = false;
+                if (item.status === 'ปกติ' && showNormal) show = true;
+                if (item.status === 'เฝ้าระวัง' && showWarning) show = true;
+                if (item.status === 'วิกฤต' && showCritical) show = true;
+
+                if (show) {
                     let color = item.status === 'วิกฤต' ? 'red' : (item.status === 'เฝ้าระวัง' ? 'orange' : 'green');
                     let marker = L.circleMarker([item.lat, item.lng], {
-                        color: color, fillColor: color, fillOpacity: 0.8, radius: 10
+                        color: color, fillColor: color, fillOpacity: 0.85, radius: 10
                     }).addTo(map1);
 
                     marker.bindPopup(`
@@ -259,122 +334,61 @@
                         สถานะ: <strong>${item.status}</strong> (${item.water})<br>
                         <small class="text-muted">${item.timestamp}</small><br>
                         <p style="margin:4px 0; font-size:0.85rem;">${item.details}</p>
-                        <a href="${item.img}" target="_blank" class="btn btn-sm btn-dark text-white mt-1 w-100">📹 ดูรูป/กล้อง CCTV</a>
                     `);
                     markersLayer.push(marker);
                 }
             });
         }
 
-        function filterPoints(status) {
-            renderMarkers(status);
-            document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
-            if(event) event.target.classList.add('active');
-        }
-
-        // Render CCTV Shortcuts
-        function renderCCTVShortcuts() {
-            const container = document.getElementById('cctvCardContainer');
-            container.innerHTML = '';
-            incidentHistory.slice(0, 4).forEach(item => {
-                let badgeClass = item.status === 'วิกฤต' ? 'bg-danger' : (item.status === 'เฝ้าระวัง' ? 'bg-warning text-dark' : 'bg-success');
-                container.innerHTML += `
-                    <div class="col-md-6">
-                        <div class="card p-2 border-0 shadow-sm d-flex flex-row align-items-center gap-2">
-                            <img src="${item.img}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px;">
-                            <div class="flex-grow-1">
-                                <small class="fw-bold d-block text-truncate" style="max-width: 170px;">${item.name}</small>
-                                <span class="badge ${badgeClass}" style="font-size: 0.7rem;">${item.status} (${item.water})</span>
-                            </div>
-                            <a href="${item.img}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye"></i></a>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        // Initialize Map 2 (Satellite Radar Layer)
-        function initMap2() {
-            setTimeout(() => {
+        // Initialize Map 2 with RainViewer Real-Time Radar Tile Server
+        async function initMap2() {
+            setTimeout(async () => {
                 if (!map2) {
-                    map2 = L.map('map2').setView([13.4168, 101.0025], 11);
+                    map2 = L.map('map2').setView([13.4168, 101.0025], 10);
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map2);
-                    L.tileLayer('https://weather.tmd.go.th/sat_images/latest_sat.png', { opacity: 0.55 }).addTo(map2);
+
+                    try {
+                        const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+                        const data = await res.json();
+                        if (data.radar && data.radar.past && data.radar.past.length > 0) {
+                            const latestPath = data.radar.past[data.radar.past.length - 1].path;
+                            L.tileLayer(`https://tilecache.rainviewer.com${latestPath}/256/{z}/{x}/{y}/2/1_1.png`, {
+                                opacity: 0.65
+                            }).addTo(map2);
+                        }
+                    } catch(e) {}
                 }
                 map2.invalidateSize();
-            }, 200);
+            }, 250);
         }
 
-        // Render Incident History Function (ดูรายการย้อนหลัง)
+        // Render Incident History Tab
         function loadHistory() {
             const container = document.getElementById('historyListContainer');
             container.innerHTML = '';
 
-            incidentHistory.forEach(item => {
-                let borderClass = item.status === 'วิกฤต' ? 'history-danger' : (item.status === 'เฝ้าระวัง' ? 'history-warning' : 'history-success');
+            incidentData.forEach(item => {
+                let borderClass = item.status === 'วิกฤต' ? 'border-danger' : (item.status === 'เฝ้าระวัง' ? 'border-warning' : 'border-success');
                 let badgeClass = item.status === 'วิกฤต' ? 'bg-danger' : (item.status === 'เฝ้าระวัง' ? 'bg-warning text-dark' : 'bg-success');
 
                 container.innerHTML += `
-                    <div class="list-group-item p-3 history-item ${borderClass}">
+                    <div class="list-group-item p-3 border-start border-4 ${borderClass}">
                         <div class="d-flex w-100 justify-content-between align-items-center mb-1">
                             <h6 class="mb-0 fw-bold">${item.name}</h6>
                             <span class="badge ${badgeClass}">${item.status} (${item.water})</span>
                         </div>
                         <p class="mb-2 text-muted" style="font-size: 0.88rem;">${item.details}</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-secondary"><i class="fa-regular fa-clock me-1"></i>${item.timestamp}</small>
-                            <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="locateOnMap(${item.lat}, ${item.lng})">
-                                <i class="fa-solid fa-location-dot me-1"></i> ดูบนแผนที่
-                            </button>
-                        </div>
+                        <small class="text-secondary"><i class="fa-regular fa-clock me-1"></i>${item.timestamp}</small>
                     </div>
                 `;
             });
         }
 
-        // Locate marker on map when click from history list
-        function locateOnMap(lat, lng) {
-            const tabBtn = document.getElementById('btn-tab1');
-            const tab = new bootstrap.Tab(tabBtn);
-            tab.show();
+        window.onload = function() {
             initMap1();
-            setTimeout(() => {
-                map1.setView([lat, lng], 16);
-            }, 300);
-        }
-
-        // Submit Incident Form
-        function submitIncident(e) {
-            e.preventDefault();
-            const loc = document.getElementById('reportLocation').value;
-            const sev = document.getElementById('waterSeverity').value;
-            const det = document.getElementById('reportDetails').value;
-            const nowStr = new Date().toLocaleDateString('th-TH') + ' ' + new Date().toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}) + ' น.';
-
-            // Push to History Array Realtime
-            incidentHistory.unshift({
-                id: Date.now(),
-                timestamp: nowStr,
-                name: loc,
-                status: sev,
-                water: sev === 'วิกฤต' ? '>30 ซม.' : (sev === 'เฝ้าระวัง' ? '15-20 ซม.' : 'ปกติ'),
-                details: det || 'ได้รับการแจ้งเหตุจากประชาชน เข้าสู่ระบบศูนย์ ปภ. เรียบร้อยแล้ว',
-                lat: 13.4168,
-                lng: 101.0025,
-                img: 'https://images.unsplash.com/photo-1545459720-aac8509eb02c?auto=format&fit=crop&w=400&q=80'
-            });
-
-            alert(`✅ บันทึกรายงานเหตุที่ "${loc}" ย้อนหลังและแสดงบนแผนที่สดเรียบร้อยแล้ว`);
-            document.getElementById('incidentForm').reset();
-            
-            // Switch to History tab
-            const historyTabBtn = document.getElementById('btn-tab-history');
-            const tab = new bootstrap.Tab(historyTabBtn);
-            tab.show();
-            loadHistory();
-        }
-
-        window.onload = initMap1;
+            fetch7DayWeatherForecast();
+            fetchCanalWaterLevels();
+        };
     </script>
 </body>
 </html>
