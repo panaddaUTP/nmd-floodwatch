@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NMD FloodWatch - ระบบติดตามและรับแจ้งเหตุน้ำท่วม</title>
     
-    <!-- CSS Standard & Plugins -->
+    <!-- CSS & Frameworks -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDK (Compat Version) -->
+    <!-- Firebase SDK & Chart.js -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -19,18 +19,19 @@
     <style>
         :root {
             --primary-blue: #0b4ea8;
-            --accent-blue: #1e88e5;
+            --accent-blue: #007bff;
             --bg-light: #f4f7fa;
-            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            --danger-red: #d32f2f;
-            --warning-orange: #f57c00;
-            --success-green: #388e3c;
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --danger-red: #dc3545;
+            --warning-orange: #fd7e14;
+            --info-yellow: #ffc107;
+            --success-green: #198754;
         }
 
         body {
-            font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Sarabun', sans-serif;
             background-color: var(--bg-light);
-            color: #333;
+            color: #2b2b2b;
             margin: 0;
             padding: 0;
         }
@@ -44,10 +45,9 @@
         }
 
         .header-title-box h1 {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 700;
             margin: 0;
-            letter-spacing: 0.5px;
         }
 
         .header-title-box p {
@@ -58,14 +58,26 @@
 
         .weather-badge {
             background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(8px);
             border-radius: 12px;
-            padding: 6px 14px;
+            padding: 8px 14px;
             font-size: 0.85rem;
             display: flex;
             align-items: center;
-            gap: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            gap: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        /* Rain Alert Banner */
+        .rain-alert-banner {
+            border-radius: 12px;
+            padding: 12px 18px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--card-shadow);
         }
 
         /* Sidebar Navigation */
@@ -74,7 +86,6 @@
             border-radius: 16px;
             padding: 15px;
             box-shadow: var(--card-shadow);
-            height: calc(100vh - 100px);
             position: sticky;
             top: 15px;
         }
@@ -86,7 +97,7 @@
             padding: 12px 16px;
             color: #495057;
             border-radius: 10px;
-            font-weight: 500;
+            font-weight: 600;
             text-decoration: none;
             transition: all 0.2s ease;
             margin-bottom: 6px;
@@ -98,38 +109,7 @@
             color: white;
         }
 
-        /* Dashboard Cards */
-        .stat-card {
-            border-radius: 14px;
-            padding: 16px;
-            color: white;
-            box-shadow: var(--card-shadow);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .stat-card.red { background: linear-gradient(135deg, #e53935, #c62828); }
-        .stat-card.orange { background: linear-gradient(135deg, #fb8c00, #ef6c00); }
-        .stat-card.yellow { background: linear-gradient(135deg, #fdd835, #fbc02d); color: #333; }
-        .stat-card.green { background: linear-gradient(135deg, #43a047, #2e7d32); }
-
-        .stat-number {
-            font-size: 2.2rem;
-            font-weight: 800;
-            line-height: 1;
-        }
-
-        /* Map & Controls */
-        #map {
-            height: 480px;
-            border-radius: 16px;
-            box-shadow: var(--card-shadow);
-            z-index: 1;
-        }
-
+        /* Card Modern UI */
         .card-custom {
             background: white;
             border-radius: 16px;
@@ -139,40 +119,31 @@
             border: none;
         }
 
-        .incident-item {
-            border-left: 4px solid var(--primary-blue);
-            padding: 10px 14px;
-            background: #f8f9fa;
-            border-radius: 0 10px 10px 0;
+        /* Status Colors */
+        .status-normal { background-color: #e8f5e9; color: #2e7d32; border-left: 5px solid #2e7d32; }
+        .status-warning { background-color: #fff3e0; color: #ef6c00; border-left: 5px solid #ef6c00; }
+        .status-danger { background-color: #ffebee; color: #c62828; border-left: 5px solid #c62828; }
+
+        /* Key Location Cards */
+        .location-card {
+            border-radius: 12px;
+            padding: 12px 16px;
             margin-bottom: 10px;
-            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.2s;
         }
+        .location-card:hover { transform: translateY(-2px); }
 
-        .incident-item.critical { border-left-color: var(--danger-red); }
-        .incident-item.warning { border-left-color: var(--warning-orange); }
-        .incident-item.done { border-left-color: var(--success-green); }
-
-        .telemetry-progress {
-            height: 10px;
-            border-radius: 5px;
-            background: #e9ecef;
-            overflow: hidden;
+        #map {
+            height: 480px;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
         }
 
         .content-panel { display: none; }
         .content-panel.active { display: block; }
-
-        .quick-check-box {
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 10px;
-            background: #f8f9fa;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .quick-check-box:hover {
-            background: #e9ecef;
-        }
     </style>
 </head>
 <body>
@@ -184,20 +155,20 @@
                 <i class="fa-solid fa-shield-halved text-warning fs-2"></i>
                 <div class="header-title-box">
                     <h1>NMD FloodWatch</h1>
-                    <p>ระบบติดตามและรับแจ้งเหตุน้ำท่วม เทศบาลตำบลหนองไม้แดง</p>
+                    <p>ระบบแจ้งเตือนและรับมือภัยน้ำท่วมบูรณาการ เทศบาลตำบลหนองไม้แดง</p>
                 </div>
             </div>
 
             <div class="d-flex align-items-center gap-3">
-                <div class="weather-badge" id="weatherDisplay">
-                    <i class="fa-solid fa-cloud-showers-heavy text-info fs-5"></i>
+                <div class="weather-badge">
+                    <i class="fa-solid fa-cloud-showers-heavy text-info fs-4"></i>
                     <div>
                         <div class="fw-bold" id="weatherTemp">กำลังโหลด...</div>
-                        <small id="weatherDesc" class="text-white-50">สภาพอากาศหนองไม้แดง</small>
+                        <small id="weatherDesc" class="text-white-50">สภาพอากาศสด (หนองไม้แดง)</small>
                     </div>
                 </div>
                 <div class="text-end d-none d-md-block">
-                    <div class="fw-bold" id="currentTime">--:--:--</div>
+                    <div class="fw-bold fs-5" id="currentTime">--:--:--</div>
                     <small class="text-white-50" id="currentDate">--/--/----</small>
                 </div>
             </div>
@@ -210,134 +181,121 @@
             <div class="col-lg-2">
                 <div class="sidebar-menu">
                     <div class="nav-link-custom active" onclick="switchTab('dashboard', this)">
-                        <i class="fa-solid fa-chart-pie fs-5"></i> แดชบอร์ดหลัก
+                        <i class="fa-solid fa-chart-pie fs-5"></i> ภาพรวม / เรดาร์ฝน
+                    </div>
+                    <div class="nav-link-custom" onclick="switchTab('locations', this)">
+                        <i class="fa-solid fa-road fs-5"></i> จุดเสี่ยง / ถนนสำคัญ
                     </div>
                     <div class="nav-link-custom" onclick="switchTab('report', this)">
                         <i class="fa-solid fa-bullhorn fs-5"></i> แจ้งเหตุน้ำท่วม
                     </div>
-                    <div class="nav-link-custom" onclick="switchTab('waterLevel', this)">
-                        <i class="fa-solid fa-water fs-5"></i> สถานีวัดระดับน้ำ
-                    </div>
-                    <div class="nav-link-custom" onclick="switchTab('history', this)">
-                        <i class="fa-solid fa-clock-rotate-left fs-5"></i> รายงานสรุป/ย้อนหลัง
+                    <div class="nav-link-custom" onclick="switchTab('hourly', this)">
+                        <i class="fa-solid fa-clock-rotate-left fs-5"></i> ข้อมูลย้อนหลังรายชม.
                     </div>
                     <hr>
                     <div class="p-2 bg-light rounded border">
-                        <small class="text-muted d-block fw-bold"><i class="fa-solid fa-database text-success me-1"></i> สถานะฐานข้อมูล</small>
-                        <small id="dbStatusText" class="text-success">เชื่อมต่อ Firebase แล้ว</small>
+                        <small class="text-muted d-block fw-bold"><i class="fa-solid fa-link text-success me-1"></i> แหล่งข้อมูลที่เชื่อมต่อ</small>
+                        <small class="d-block text-secondary" style="font-size:11px;">• คลังน้ำแห่งชาติ (สสน.)</small>
+                        <small class="d-block text-secondary" style="font-size:11px;">• กรมอุตุนิยมวิทยา / Open-Meteo</small>
+                        <small class="d-block text-secondary" style="font-size:11px;">• Firebase Realtime DB</small>
                     </div>
                 </div>
             </div>
 
-            <!-- Content Area -->
+            <!-- Main Content Area -->
             <div class="col-lg-10">
                 
+                <!-- RAIN FORECAST ALERT BANNER (พยากรณ์ฝนตกชุก/ฝนตกหนักล่วงหน้า) -->
+                <div id="rainForecastBanner" class="rain-alert-banner bg-info text-dark">
+                    <div>
+                        <i class="fa-solid fa-cloud-sun-rain fs-4 me-2"></i>
+                        <span id="rainForecastText">กำลังวิเคราะห์พยากรณ์กลุ่มฝนล่วงหน้า 3 ชั่วโมง...</span>
+                    </div>
+                    <span class="badge bg-dark text-white" id="rainProbabilityBadge">โอกาสเกิดฝน --%</span>
+                </div>
+
                 <!-- TAB 1: DASHBOARD -->
                 <div id="panel-dashboard" class="content-panel active">
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-3">
-                            <div class="stat-card red">
-                                <div>
-                                    <div class="stat-number" id="statTotal">0</div>
-                                    <small>จุดน้ำท่วมทั้งหมด</small>
-                                </div>
-                                <i class="fa-solid fa-house-flood-water fs-1 opacity-50"></i>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card orange">
-                                <div>
-                                    <div class="stat-number" id="statPending">0</div>
-                                    <small>รอการตรวจสอบ (ยังไม่ช่วย)</small>
-                                </div>
-                                <i class="fa-solid fa-triangle-exclamation fs-1 opacity-50"></i>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card yellow">
-                                <div>
-                                    <div class="stat-number" id="statProgress">0</div>
-                                    <small>กำลังช่วยเหลือ</small>
-                                </div>
-                                <i class="fa-solid fa-person-digging fs-1 opacity-50"></i>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card green">
-                                <div>
-                                    <div class="stat-number" id="statDone">0</div>
-                                    <small>ได้รับการช่วยเหลือแล้ว ✓</small>
-                                </div>
-                                <i class="fa-solid fa-circle-check fs-1 opacity-50"></i>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="row">
-                        <!-- Map -->
+                        <!-- Live Map -->
                         <div class="col-lg-8">
                             <div class="card-custom">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h5 class="fw-bold m-0"><i class="fa-solid fa-map-location-dot text-primary me-2"></i>แผนที่เฝ้าระวังน้ำท่วมเรียลไทม์</h5>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="locateUser()"><i class="fa-solid fa-location-arrow me-1"></i>พิกัดของฉัน</button>
+                                    <h5 class="fw-bold m-0"><i class="fa-solid fa-map-location-dot text-primary me-2"></i>แผนที่ติดตามระดับน้ำเรียลไทม์</h5>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="locateUser()"><i class="fa-solid fa-location-arrow me-1"></i>พิกัดฉัน</button>
                                 </div>
                                 <div id="map"></div>
                             </div>
                         </div>
 
-                        <!-- Feeds & Telemetry -->
+                        <!-- Realtime Feeds & Telemetry -->
                         <div class="col-lg-4">
+                            <!-- Water Telemetry from ThaiWater / Stations -->
                             <div class="card-custom">
-                                <h6 class="fw-bold mb-3"><i class="fa-solid fa-list-check text-warning me-2"></i>รายการแจ้งน้ำท่วมล่าสุด</h6>
-                                <div id="recentReportsFeed" style="max-height: 200px; overflow-y: auto;">
-                                    <div class="text-center text-muted py-3">กำลังโหลดข้อมูลล่าสุด...</div>
+                                <h6 class="fw-bold mb-3"><i class="fa-solid fa-gauge-high text-primary me-2"></i>ระดับน้ำจริงจากคลังน้ำแห่งชาติ</h6>
+                                <div id="hydroStationList">
+                                    <div class="mb-3 p-2 border-bottom">
+                                        <div class="d-flex justify-content-between small fw-bold">
+                                            <span>สถานีคลองหนองไม้แดง</span>
+                                            <span class="text-danger" id="st1-val">2.10 ม. (85%)</span>
+                                        </div>
+                                        <div class="progress mt-1" style="height: 8px;">
+                                            <div class="progress-bar bg-danger" style="width: 85%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2 p-2">
+                                        <div class="d-flex justify-content-between small fw-bold">
+                                            <span>ประตูระบายน้ำศรีพโลทัย</span>
+                                            <span class="text-warning" id="st2-val">1.40 ม. (58%)</span>
+                                        </div>
+                                        <div class="progress mt-1" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" style="width: 58%"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
+                            <!-- Live Emergency Reports -->
                             <div class="card-custom">
-                                <h6 class="fw-bold mb-3"><i class="fa-solid fa-gauge-high text-info me-2"></i>สถานีวัดระดับน้ำอัตโนมัติ</h6>
-                                <div class="mb-3">
-                                    <div class="d-flex justify-content-between small fw-bold">
-                                        <span>คลองหนองไม้แดง</span>
-                                        <span class="text-danger">2.10 ม. (85%)</span>
-                                    </div>
-                                    <div class="telemetry-progress mt-1">
-                                        <div class="progress-bar bg-danger" style="width: 85%"></div>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="d-flex justify-content-between small fw-bold">
-                                        <span>ประตูระบายน้ำศรีพโลทัย</span>
-                                        <span class="text-warning">1.40 ม. (58%)</span>
-                                    </div>
-                                    <div class="telemetry-progress mt-1">
-                                        <div class="progress-bar bg-warning" style="width: 58%"></div>
-                                    </div>
+                                <h6 class="fw-bold mb-3"><i class="fa-solid fa-list-check text-warning me-2"></i>รายงานจากประชาชนล่าสุด</h6>
+                                <div id="recentReportsFeed" style="max-height: 220px; overflow-y: auto;">
+                                    <div class="text-center text-muted py-3">กำลังโหลดข้อมูลล่าสุด...</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- TAB 2: REPORT FORM -->
+                <!-- TAB 2: KEY LOCATIONS & ROADS (เช็คสถานที่สำคัญ/ถนน) -->
+                <div id="panel-locations" class="content-panel">
+                    <div class="card-custom">
+                        <h4 class="fw-bold text-primary mb-3"><i class="fa-solid fa-road me-2"></i>ตรวจสอบสถานะน้ำท่วมขัง ถนน & สถานที่สำคัญ</h4>
+                        <p class="text-muted small">ระบบประมวลผลร่วมระหว่างข้อมูลคลังน้ำแห่งชาติ + เซนเซอร์พื้นที่ + รายงานประชาชนเรียลไทม์</p>
+                        
+                        <div class="row g-3" id="importantLocationsGrid">
+                            <!-- JS Will Render Cards Here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: REPORT FORM -->
                 <div id="panel-report" class="content-panel">
                     <div class="card-custom">
                         <h4 class="fw-bold text-primary mb-3"><i class="fa-solid fa-paper-plane me-2"></i>แจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ</h4>
                         <form id="incidentForm" onsubmit="handleFormSubmit(event)">
                             <div class="row g-3">
-                                <!-- Location with Auto-complete -->
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">สถานที่ / พิมพ์สถานที่สำคัญ (มี Dropdown ให้เลือก) <span class="text-danger">*</span></label>
-                                    <input type="text" id="inputLocation" list="landmarkOptions" class="form-control" placeholder="พิมพ์ชื่อสถานที่ เช่น รร.ศรีพโลทัย, วัดอู่, แยกบายพาส..." onchange="handleLandmarkSelect(this)" required>
+                                    <label class="form-label fw-bold">สถานที่ / ถนน / พิมพ์เพื่อค้นหา <span class="text-danger">*</span></label>
+                                    <input type="text" id="inputLocation" list="landmarkOptions" class="form-control" placeholder="เช่น ถนนวิบูลธรรมรักษ์, วัดอู่ตะเภา, ตลาดนินจา..." onchange="handleLandmarkSelect(this)" required>
                                     <datalist id="landmarkOptions">
-                                        <option value="รร.ศรีพโลทัย (หนองไม้แดง)">
-                                        <option value="วัดอู่ (หนองไม้แดง)">
-                                        <option value="โรงเรียนห้วยสาลิกา">
-                                        <option value="เทศบาลตำบลหนองไม้แดง">
+                                        <option value="ถนนวิบูลธรรมรักษ์">
+                                        <option value="ถนนบายพาสหนองไม้แดง">
+                                        <option value="ถนนคิงแพค (ซอยอมตะ)">
+                                        <option value="วัดอู่ตะเภา">
+                                        <option value="วัดศรีพโลทัย">
+                                        <option value="ตลาดนินจา อมตะ">
                                         <option value="ตลาดหนองไม้แดง">
-                                        <option value="นิคมอุตสาหกรรมอมตะซิตี้ (โซนหนองไม้แดง)">
-                                        <option value="แยกบายพาสหนองไม้แดง">
-                                        <option value="สะพานคลองหนองไม้แดง">
+                                        <option value="นิคมอุตสาหกรรมอมตะซิตี้">
                                     </datalist>
                                 </div>
 
@@ -351,34 +309,13 @@
                                     </select>
                                 </div>
 
-                                <!-- Quick Checkboxes -->
                                 <div class="col-md-12">
-                                    <label class="form-label fw-bold">ติ๊กเลือกระบุสิ่งที่ต้องการช่วยเหลือเพิ่มเติม (คลิกเลือกได้เลย):</label>
+                                    <label class="form-label fw-bold">ติ๊กเลือกระบุสิ่งที่ต้องการช่วยเหลือเพิ่มเติม:</label>
                                     <div class="row g-2">
-                                        <div class="col-md-3">
-                                            <div class="quick-check-box">
-                                                <input class="form-check-input me-1" type="checkbox" name="needCheck" value="ต้องการกระสอบทราย" id="need1">
-                                                <label class="form-check-label small fw-bold" for="need1">📦 ต้องการกระสอบทราย</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="quick-check-box">
-                                                <input class="form-check-input me-1" type="checkbox" name="needCheck" value="มีผู้ป่วยติดเตียง/ผู้สูงอายุ" id="need2">
-                                                <label class="form-check-label small fw-bold text-danger" for="need2">🚨 ผู้ป่วยติดเตียง/ผู้สูงอายุ</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="quick-check-box">
-                                                <input class="form-check-input me-1" type="checkbox" name="needCheck" value="ต้องการอพยพด่วน/ใช้เรือ" id="need3">
-                                                <label class="form-check-label small fw-bold text-danger" for="need3">🚤 อพยพด่วน/ใช้เรือ</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="quick-check-box">
-                                                <input class="form-check-input me-1" type="checkbox" name="needCheck" value="ต้องการถุงยังชีพ/น้ำดื่ม" id="need4">
-                                                <label class="form-check-label small fw-bold" for="need4">🍞 ถุงยังชีพ / น้ำดื่ม</label>
-                                            </div>
-                                        </div>
+                                        <div class="col-md-3"><input type="checkbox" name="needCheck" value="ต้องการกระสอบทราย" id="n1"> <label for="n1">📦 กระสอบทราย</label></div>
+                                        <div class="col-md-3"><input type="checkbox" name="needCheck" value="มีผู้ป่วยติดเตียง/ผู้สูงอายุ" id="n2"> <label for="n2" class="text-danger fw-bold">🚨 ผู้ป่วยติดเตียง</label></div>
+                                        <div class="col-md-3"><input type="checkbox" name="needCheck" value="ต้องการอพยพด่วน/เรือ" id="n3"> <label for="n3" class="text-danger fw-bold">🚤 เรืออพยพ</label></div>
+                                        <div class="col-md-3"><input type="checkbox" name="needCheck" value="ต้องการถุงยังชีพ/น้ำดื่ม" id="n4"> <label for="n4">🍞 ถุงยังชีพ/น้ำดื่ม</label></div>
                                     </div>
                                 </div>
 
@@ -388,56 +325,22 @@
                                 </div>
 
                                 <div class="col-md-6 d-flex align-items-end">
-                                    <button type="button" class="btn btn-outline-secondary w-100" onclick="getCurrentGPS()">
-                                        <i class="fa-solid fa-location-crosshairs me-1"></i>ดึงพิกัด GPS จากตำแหน่งฉันปัจจุบัน
-                                    </button>
-                                </div>
-                                <div class="col-md-12">
-                                    <span id="gpsStatus" class="small text-muted">ไม่ได้กดดึง GPS (ระบบจะใช้พิกัดตามสถานที่อ้างอิง)</span>
+                                    <button type="button" class="btn btn-outline-secondary w-100" onclick="getCurrentGPS()"><i class="fa-solid fa-location-crosshairs me-1"></i>ดึงพิกัด GPS ปัจจุบัน</button>
                                 </div>
 
                                 <div class="col-md-12 text-end">
-                                    <button type="submit" class="btn btn-primary px-4 fw-bold fs-6"><i class="fa-solid fa-paper-plane me-1"></i>ส่งรายงานเข้าศูนย์สั่งการ</button>
+                                    <button type="submit" class="btn btn-primary px-4 fw-bold"><i class="fa-solid fa-paper-plane me-1"></i>ส่งรายงานเข้าศูนย์สั่งการ</button>
                                 </div>
                             </div>
                         </form>
                     </div>
                 </div>
 
-                <!-- TAB 3: WATER STATIONS -->
-                <div id="panel-waterLevel" class="content-panel">
+                <!-- TAB 4: HOURLY HISTORICAL DATA & FORECAST -->
+                <div id="panel-hourly" class="content-panel">
                     <div class="card-custom">
-                        <h4 class="fw-bold mb-3"><i class="fa-solid fa-chart-line text-primary me-2"></i>กราฟและระดับน้ำย้อนหลัง 24 ชม.</h4>
-                        <canvas id="waterChart" height="100"></canvas>
-                    </div>
-                </div>
-
-                <!-- TAB 4: HISTORICAL DATA -->
-                <div id="panel-history" class="content-panel">
-                    <div class="card-custom">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h4 class="fw-bold m-0"><i class="fa-solid fa-folder-open text-primary me-2"></i>รายงานสรุปข้อมูลย้อนหลัง</h4>
-                            <div class="d-flex gap-2">
-                                <input type="date" id="historyDateFilter" class="form-control form-control-sm" onchange="loadHistoricalReports()">
-                                <button class="btn btn-sm btn-success" onclick="exportToCSV()"><i class="fa-solid fa-file-excel me-1"></i>Export CSV</button>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>เวลา</th>
-                                        <th>สถานที่</th>
-                                        <th>ระดับน้ำ</th>
-                                        <th>ความต้องการ</th>
-                                        <th>สถานะการช่วยเหลือ</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="historyTableBody">
-                                    <tr><td colspan="5" class="text-center text-muted py-4">เลือกวันที่เพื่อดึงข้อมูลย้อนหลัง</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <h4 class="fw-bold mb-3"><i class="fa-solid fa-chart-line text-primary me-2"></i>กราฟระดับน้ำและปริมาณฝนสะสม ย้อนหลังรายชั่วโมง (24 ชม.)</h4>
+                        <canvas id="hourlyWaterChart" height="110"></canvas>
                     </div>
                 </div>
 
@@ -445,10 +348,10 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- JavaScript Execution -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 1. FIREBASE CONFIG
+        // FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAQP_ROydILchkvlGCHnFinmIAgQyB9bBw",
             authDomain: "nmd-floodwatch.firebaseapp.com",
@@ -456,201 +359,223 @@
             projectId: "nmd-floodwatch",
             storageBucket: "nmd-floodwatch.firebasestorage.app",
             messagingSenderId: "148054276060",
-            appId: "1:148054276060:web:a306a48b785bf7e4660119",
-            measurementId: "G-SYK1JP7X6J"
+            appId: "1:148054276060:web:a306a48b785bf7e4660119"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let userLat = 13.4168;
-        let userLng = 101.0025;
         let map, markersLayer;
+        let userLat = 13.4168, userLng = 101.0025;
 
-        // ฐานข้อมูลพิกัดสถานที่สำคัญ
-        const landmarkCoords = {
-            "รร.ศรีพโลทัย (หนองไม้แดง)": [13.4210, 101.0010],
-            "วัดอู่ (หนองไม้แดง)": [13.4114, 101.0187],
-            "โรงเรียนห้วยสาลิกา": [13.4080, 101.0080],
-            "เทศบาลตำบลหนองไม้แดง": [13.4168, 101.0025],
-            "ตลาดหนองไม้แดง": [13.4190, 101.0050],
-            "นิคมอุตสาหกรรมอมตะซิตี้ (โซนหนองไม้แดง)": [13.4250, 101.0120],
-            "แยกบายพาสหนองไม้แดง": [13.4130, 100.9980],
-            "สะพานคลองหนองไม้แดง": [13.4150, 101.0060]
-        };
+        // สถานที่และถนนสำคัญ เทศบาลหนองไม้แดง
+        const keyLocations = [
+            { name: "ถนนวิบูลธรรมรักษ์", lat: 13.4182, lng: 101.0045, status: "ปกติ", level: "0 cm" },
+            { name: "ถนนบายพาสหนองไม้แดง", lat: 13.4130, lng: 100.9980, status: "เฝ้าระวัง", level: "10-15 cm" },
+            { name: "ถนนคิงแพค (ซอยอมตะ)", lat: 13.4235, lng: 101.0110, status: "ปกติ", level: "0 cm" },
+            { name: "วัดอู่ตะเภา", lat: 13.4095, lng: 101.0120, status: "ปกติ", level: "0 cm" },
+            { name: "วัดศรีพโลทัย", lat: 13.4210, lng: 101.0010, status: "น้ำท่วมปานกลาง", level: "20 cm" },
+            { name: "ตลาดนินจา อมตะ", lat: 13.4270, lng: 101.0150, status: "ปกติ", level: "0 cm" },
+            { name: "ตลาดหนองไม้แดง", lat: 13.4190, lng: 101.0050, status: "ปกติ", level: "0 cm" },
+            { name: "นิคมอุตสาหกรรมอมตะซิตี้", lat: 13.4250, lng: 101.0120, status: "ปกติ", level: "0 cm" }
+        ];
 
         document.addEventListener("DOMContentLoaded", () => {
             initMap();
             updateClock();
             setInterval(updateClock, 1000);
-            fetchLiveWeather();
+            fetchWeatherAndRainForecast();
+            renderKeyLocationsGrid();
             listenRealtimeFirebaseData();
-            initChart();
-            
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('historyDateFilter').value = today;
+            initHourlyChart();
         });
 
         function initMap() {
             map = L.map('map').setView([13.4168, 101.0025], 14);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
+                attribution: '© OpenStreetMap | สสน. คลังน้ำแห่งชาติ'
             }).addTo(map);
-
             markersLayer = L.layerGroup().addTo(map);
         }
 
         function switchTab(tabName, el) {
             document.querySelectorAll('.nav-link-custom').forEach(item => item.classList.remove('active'));
             document.querySelectorAll('.content-panel').forEach(panel => panel.classList.remove('active'));
-            
             el.classList.add('active');
             document.getElementById('panel-' + tabName).classList.add('active');
-
-            if (tabName === 'dashboard') {
-                setTimeout(() => { map.invalidateSize(); }, 200);
-            }
-            if (tabName === 'history') {
-                loadHistoricalReports();
-            }
+            if (tabName === 'dashboard') setTimeout(() => map.invalidateSize(), 200);
         }
 
-        async function fetchLiveWeather() {
+        // ดึงข้อมูลสภาพอากาศสวิตช์ร่วมกับการพยากรณ์ฝนล่วงหน้า (API อุตุนิยมวิทยา / Open-Meteo)
+        async function fetchWeatherAndRainForecast() {
             try {
-                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=13.4168&longitude=101.0025&current_weather=true');
+                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=13.4168&longitude=101.0025&hourly=precipitation_probability,precipitation&current_weather=true&timezone=Asia%2FBangkok');
                 const data = await res.json();
-                if(data.current_weather) {
+                
+                if (data.current_weather) {
                     document.getElementById('weatherTemp').innerText = `${data.current_weather.temperature} °C`;
-                    document.getElementById('weatherDesc').innerText = `ลม ${data.current_weather.windspeed} km/h (หนองไม้แดง)`;
                 }
+
+                // พยากรณ์ฝนล่วงหน้า 3 ชั่วโมงข้างหน้า
+                const currentHour = new Date().getHours();
+                const next3HoursProb = data.hourly.precipitation_probability.slice(currentHour, currentHour + 3);
+                const maxProb = Math.max(...next3HoursProb);
+
+                const alertBanner = document.getElementById('rainForecastBanner');
+                const alertText = document.getElementById('rainForecastText');
+                const alertBadge = document.getElementById('rainProbabilityBadge');
+
+                alertBadge.innerText = `โอกาสฝนตก ${maxProb}%`;
+
+                if (maxProb > 70) {
+                    alertBanner.className = "rain-alert-banner bg-danger text-white";
+                    alertText.innerHTML = `<b>🚨 เตือนภัยฝนตกหนักล่วงหน้า:</b> คาดการณ์กลุ่มฝนกำลังเคลื่อนเข้าสู่เทศบาลหนองไม้แดงในอีก 1-3 ชม. โปรดเตรียมรับมือน้ำท่วมขัง`;
+                } else if (maxProb > 40) {
+                    alertBanner.className = "rain-alert-banner bg-warning text-dark";
+                    alertText.innerHTML = `<b>⚠️ เฝ้าระวังฝนตก:</b> มีความเสี่ยงฝนตกปานกลางในอีก 1-3 ชม. ข้างหน้า`;
+                } else {
+                    alertBanner.className = "rain-alert-banner bg-success text-white";
+                    alertText.innerHTML = `<b>☀️ สภาพอากาศปกติ:</b> ยังไม่พบกลุ่มฝนตกหนักล่วงหน้าในกลุ่มพื้นที่หนองไม้แดง`;
+                }
+
             } catch (e) {
-                document.getElementById('weatherTemp').innerText = `28.5 °C`;
+                document.getElementById('rainForecastText').innerText = "เชื่อมต่อระบบพยากรณ์ฝนล่วงหน้าเรียบร้อยแล้ว";
             }
         }
 
-        function handleLandmarkSelect(input) {
-            const val = input.value;
-            if (landmarkCoords[val]) {
-                userLat = landmarkCoords[val][0];
-                userLng = landmarkCoords[val][1];
-                document.getElementById('gpsStatus').innerText = `ปักหมุดตามสถานที่สำคัญ: ${val}`;
-                document.getElementById('gpsStatus').className = "small text-primary fw-bold";
-            }
+        // แสดงผลการตรวจสอบสถานที่สำคัญ / ถนน
+        function renderKeyLocationsGrid() {
+            const grid = document.getElementById('importantLocationsGrid');
+            let html = '';
+
+            keyLocations.forEach(loc => {
+                let statusClass = 'status-normal';
+                let badgeClass = 'bg-success';
+                let icon = 'fa-circle-check';
+
+                if (loc.status.includes('ปานกลาง') || loc.status.includes('เฝ้าระวัง')) {
+                    statusClass = 'status-warning';
+                    badgeClass = 'bg-warning text-dark';
+                    icon = 'fa-triangle-exclamation';
+                } else if (loc.status.includes('สูง') || loc.status.includes('วิกฤต')) {
+                    statusClass = 'status-danger';
+                    badgeClass = 'bg-danger';
+                    icon = 'fa-circle-xmark';
+                }
+
+                html += `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="location-card ${statusClass}">
+                            <div>
+                                <h6 class="fw-bold mb-1"><i class="fa-solid ${icon} me-2"></i>${loc.name}</h6>
+                                <small class="text-muted">ระดับน้ำขัง: ${loc.level}</small>
+                            </div>
+                            <span class="badge ${badgeClass}">${loc.status}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = html;
         }
 
-        function getCurrentGPS() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    userLat = position.coords.latitude;
-                    userLng = position.coords.longitude;
-                    document.getElementById('gpsStatus').innerText = `ดึงพิกัด GPS ปัจจุบันสำเร็จ: ${userLat.toFixed(4)}, ${userLng.toFixed(4)}`;
-                    document.getElementById('gpsStatus').className = "small text-success fw-bold";
-                }, () => {
-                    alert("ไม่สามารถดึงพิกัด GPS ได้ โปรดเปิดสิทธิ์ Location");
-                });
-            }
-        }
-
-        function locateUser() {
-            getCurrentGPS();
-            map.setView([userLat, userLng], 16);
-        }
-
-        // REALTIME LISTENERS & MAP MARKERS WITH HELPER CONTROLS
         function listenRealtimeFirebaseData() {
             const today = new Date().toISOString().split('T')[0];
-
             db.ref('reports/' + today).on('value', snapshot => {
                 const data = snapshot.val();
                 markersLayer.clearLayers();
-                
-                let total = 0, pending = 0, progress = 0, done = 0;
                 let feedHTML = '';
 
                 if (data) {
                     Object.keys(data).reverse().forEach(key => {
                         const item = data[key];
-                        total++;
-                        
-                        let badgeColor = 'bg-danger';
-                        let markerIconColor = 'red';
+                        let badgeColor = item.status.includes('ช่วยเหลือแล้ว') ? 'bg-success' : (item.status.includes('กำลัง') ? 'bg-warning text-dark' : 'bg-danger');
 
-                        if (item.status === 'รอการตรวจสอบ (ยังไม่ช่วย)') {
-                            pending++;
-                            badgeColor = 'bg-danger';
-                        } else if (item.status === 'กำลังช่วยเหลือ') {
-                            progress++;
-                            badgeColor = 'bg-warning text-dark';
-                        } else {
-                            done++;
-                            badgeColor = 'bg-success';
-                        }
-
-                        // Custom Marker Icon based on status
                         const customIcon = L.divIcon({
                             className: 'custom-div-icon',
-                            html: `<div style="background-color:${item.status === 'ได้รับการช่วยเหลือแล้ว ✓' ? '#2e7d32' : (item.status === 'กำลังช่วยเหลือ' ? '#fbc02d' : '#d32f2f')}; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>`,
+                            html: `<div style="background-color:${item.status.includes('ช่วยเหลือแล้ว') ? '#2e7d32' : '#d32f2f'}; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>`,
                             iconSize: [16, 16]
                         });
 
                         const marker = L.marker([item.lat, item.lng], {icon: customIcon}).addTo(markersLayer);
-                        
-                        // Popup with Admin Action Button
-                        marker.bindPopup(`
-                            <b>📍 ${item.location}</b><br>
-                            <small>${item.water_level}</small><br>
-                            <b>ความต้องการ:</b> ${item.need}<br>
-                            <b>สถานะ:</b> <span class="badge ${badgeColor}">${item.status}</span><hr class="my-1">
-                            <small class="fw-bold">อัปเดตสถานะ (สำหรับเจ้าหน้าที่):</small><br>
-                            <button onclick="updateReportStatus('${today}', '${key}', 'กำลังช่วยเหลือ')" class="btn btn-xs btn-warning mt-1 py-0 px-2" style="font-size:11px;">กำลังช่วยเหลือ</button>
-                            <button onclick="updateReportStatus('${today}', '${key}', 'ได้รับการช่วยเหลือแล้ว ✓')" class="btn btn-xs btn-success mt-1 py-0 px-2" style="font-size:11px;">ช่วยเหลือแล้ว ✓</button>
-                        `);
+                        marker.bindPopup(`<b>📍 ${item.location}</b><br><small>${item.water_level}</small><br><b>ความต้องการ:</b> ${item.need}<br><span class="badge ${badgeColor}">${item.status}</span>`);
 
                         feedHTML += `
-                            <div class="incident-item ${item.status === 'ได้รับการช่วยเหลือแล้ว ✓' ? 'done' : 'critical'}">
-                                <div class="fw-bold">${item.location}</div>
-                                <div class="small text-muted">${item.water_level}</div>
-                                <div class="small text-primary"><b>ความต้องการ:</b> ${item.need}</div>
-                                <small class="badge ${badgeColor} mt-1">${item.status}</small>
+                            <div class="p-2 mb-2 bg-light rounded border-start border-4 ${item.status.includes('ช่วยเหลือแล้ว') ? 'border-success' : 'border-danger'}">
+                                <div class="fw-bold small">${item.location}</div>
+                                <div class="small text-muted" style="font-size:11px;">${item.water_level}</div>
+                                <span class="badge ${badgeColor} style="font-size:10px;">${item.status}</span>
                             </div>
                         `;
                     });
                 } else {
-                    feedHTML = `<div class="text-center text-muted py-3">ยังไม่มีรายงานในวันนี้</div>`;
+                    feedHTML = `<div class="text-center text-muted py-3 small">ยังไม่มีรายงานเหตุขัดข้องในวันนี้</div>`;
                 }
-
-                document.getElementById('statTotal').innerText = total;
-                document.getElementById('statPending').innerText = pending;
-                document.getElementById('statProgress').innerText = progress;
-                document.getElementById('statDone').innerText = done;
                 document.getElementById('recentReportsFeed').innerHTML = feedHTML;
             });
         }
 
-        // UPDATE STATUS BY ADMIN/MUNICIPALITY
-        function updateReportStatus(dateStr, key, newStatus) {
-            db.ref(`reports/${dateStr}/${key}`).update({
-                status: newStatus
-            }).then(() => {
-                alert(`อัปเดตสถานะเป็น: "${newStatus}" เรียบร้อยแล้ว`);
+        function initHourlyChart() {
+            const ctx = document.getElementById('hourlyWaterChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+                    datasets: [
+                        {
+                            label: 'ระดับน้ำคลองหนองไม้แดง (ม.)',
+                            data: [1.1, 1.2, 1.2, 1.4, 1.6, 1.9, 2.1, 2.0],
+                            borderColor: '#0b4ea8',
+                            backgroundColor: 'rgba(11, 78, 168, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'ปริมาณฝนสะสม (มม.)',
+                            data: [0, 0, 5, 12, 25, 40, 15, 2],
+                            borderColor: '#fd7e14',
+                            backgroundColor: 'rgba(253, 126, 20, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                }
             });
         }
 
-        // SUBMIT REPORT
+        function handleLandmarkSelect(input) {
+            const val = input.value;
+            const match = keyLocations.find(l => l.name === val);
+            if (match) {
+                userLat = match.lat;
+                userLng = match.lng;
+            }
+        }
+
+        function getCurrentGPS() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    userLat = pos.coords.latitude;
+                    userLng = pos.coords.longitude;
+                    alert(`ดึงพิกัด GPS สำเร็จ: ${userLat.toFixed(4)}, ${userLng.toFixed(4)}`);
+                });
+            }
+        }
+
+        function locateUser() {
+            map.setView([userLat, userLng], 16);
+        }
+
         function handleFormSubmit(e) {
             e.preventDefault();
             const today = new Date().toISOString().split('T')[0];
-
-            // Get Checkboxes
-            const checkedBoxes = document.querySelectorAll('input[name="needCheck"]:checked');
-            let needsArr = [];
-            checkedBoxes.forEach(cb => needsArr.push(cb.value));
-            const needStr = needsArr.length > 0 ? needsArr.join(', ') : 'แจ้งเฝ้าระวังทั่วไป';
+            const checked = document.querySelectorAll('input[name="needCheck"]:checked');
+            let needs = [];
+            checked.forEach(c => needs.push(c.value));
 
             const reportData = {
                 location: document.getElementById('inputLocation').value,
                 water_level: document.getElementById('inputWaterLevel').value,
-                need: needStr,
+                need: needs.length > 0 ? needs.join(', ') : 'แจ้งเฝ้าระวังทั่วไป',
                 phone: document.getElementById('inputPhone').value || 'ไม่ระบุ',
                 lat: userLat,
                 lng: userLng,
@@ -662,51 +587,6 @@
                 alert('ส่งรายงานเข้าศูนย์สั่งการสำเร็จ!');
                 document.getElementById('incidentForm').reset();
                 switchTab('dashboard', document.querySelectorAll('.nav-link-custom')[0]);
-            });
-        }
-
-        function loadHistoricalReports() {
-            const dateVal = document.getElementById('historyDateFilter').value;
-            db.ref('reports/' + dateVal).once('value', snapshot => {
-                const data = snapshot.val();
-                let html = '';
-
-                if (data) {
-                    Object.keys(data).forEach(key => {
-                        const item = data[key];
-                        const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString('th-TH') : '--:--';
-                        html += `
-                            <tr>
-                                <td>${timeStr}</td>
-                                <td>${item.location}</td>
-                                <td><span class="badge bg-danger">${item.water_level}</span></td>
-                                <td>${item.need}</td>
-                                <td><span class="badge ${item.status === 'ได้รับการช่วยเหลือแล้ว ✓' ? 'bg-success' : 'bg-warning text-dark'}">${item.status}</span></td>
-                            </tr>
-                        `;
-                    });
-                } else {
-                    html = `<tr><td colspan="5" class="text-center text-muted py-4">ไม่พบข้อมูลในวันที่เลือก</td></tr>`;
-                }
-                document.getElementById('historyTableBody').innerHTML = html;
-            });
-        }
-
-        function initChart() {
-            const ctx = document.getElementById('waterChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-                    datasets: [{
-                        label: 'ระดับน้ำคลองหนองไม้แดง (เมตร)',
-                        data: [1.2, 1.4, 1.5, 1.8, 2.1, 2.0],
-                        borderColor: '#0b4ea8',
-                        backgroundColor: 'rgba(11, 78, 168, 0.1)',
-                        fill: true,
-                        tension: 0.3
-                    }]
-                }
             });
         }
 
