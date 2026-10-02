@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NMD FloodWatch - ระบบติดตามและรายงานน้ำท่วม เทศบาลตำบลหนองไม้แดง</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; }
+        body { display: flex; flex-direction: column; height: 100vh; background: #eef2f5; overflow: hidden; }
+        
+        /* Header Bar */
+        header { 
+            background: linear-gradient(135deg, #0b3c5d, #1d2731); 
+            color: white; 
+            padding: 12px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+        .logo-title { display: flex; align-items: center; gap: 10px; }
+        .logo-title h1 { font-size: 18px; font-weight: 700; color: #328cc1; }
+        .logo-title span { font-size: 12px; opacity: 0.8; display: block; }
+
+        /* Main Layout */
+        .main-layout { display: flex; flex: 1; height: calc(100vh - 60px); position: relative; }
+        
+        /* Map Container */
+        #map { flex: 1; height: 100%; z-index: 1; }
+
+        /* Sidebar Control Panel */
+        .sidebar { 
+            width: 440px; 
+            background: white; 
+            border-left: 1px solid #ddd; 
+            display: flex; 
+            flex-direction: column; 
+            z-index: 10; 
+            box-shadow: -3px 0 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        /* Mobile Toggle Bar */
+        .mobile-bar {
+            display: none;
+            background: #328cc1;
+            color: white;
+            padding: 8px 15px;
+            text-align: center;
+            font-size: 13px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        /* Tabs Navigation */
+        .tabs { display: flex; background: #0b3c5d; }
+        .tab-btn { 
+            flex: 1; 
+            padding: 12px 5px; 
+            border: none; 
+            background: transparent; 
+            color: #999; 
+            font-weight: 600; 
+            font-size: 13px;
+            cursor: pointer; 
+            transition: 0.2s;
+            text-align: center;
+        }
+        .tab-btn.active { background: white; color: #0b3c5d; border-top: 3px solid #328cc1; }
+        
+        .tab-content { flex: 1; padding: 15px; overflow-y: auto; display: none; }
+        .tab-content.active { display: block; }
+
+        /* UI Cards & Elements */
+        .card { background: #f9fbfd; border: 1px solid #d1d9e6; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        .card-danger { border-left: 5px solid #d9534f; background: #fff8f8; }
+        .card-warning { border-left: 5px solid #f0ad4e; }
+        .card-info { border-left: 5px solid #328cc1; }
+
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; display: inline-block; }
+        .badge-red { background: #d9534f; }
+        .badge-orange { background: #f0ad4e; }
+        .badge-green { background: #5cb85c; }
+        .badge-blue { background: #0275d8; }
+
+        /* Form Controls */
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #333; }
+        .form-group input, .form-group select, .form-group textarea { 
+            width: 100%; 
+            padding: 9px; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+            font-size: 13px; 
+        }
+
+        .btn { 
+            width: 100%; 
+            padding: 10px; 
+            border: none; 
+            border-radius: 5px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            margin-top: 5px; 
+            text-decoration: none; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 6px; 
+            font-size: 13px; 
+            transition: 0.2s;
+        }
+        .btn-gmaps { background: #4285F4; color: white; }
+        .btn-gmaps:hover { background: #2b6cb0; }
+        .btn-submit { background: #5cb85c; color: white; font-size: 14px; }
+        .btn-submit:hover { background: #4cae4c; }
+        .btn-export { background: #0b3c5d; color: white; width: auto; padding: 6px 12px; font-size: 12px; }
+
+        /* Alert Box */
+        .sos-alert-box {
+            background: #ffebe6;
+            border: 1px solid #ffb3b3;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+        
+        /* Stats Summary Cards */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-card { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; text-align: center; }
+        .stat-card .num { font-size: 20px; font-weight: bold; color: #0b3c5d; }
+        .stat-card .label { font-size: 11px; color: #666; }
+
+        /* Image Preview Box */
+        .img-preview { width: 100%; max-height: 150px; object-fit: cover; border-radius: 5px; margin-top: 8px; border: 1px solid #ccc; }
+
+        /* Responsive Design for Mobile */
+        @media (max-width: 768px) {
+            .main-layout { flex-direction: column; }
+            .sidebar { width: 100%; height: 50vh; }
+            .mobile-bar { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo-title">
+        <div>
+            <h1>🌊 NMD FloodWatch</h1>
+            <span>ระบบติดตามและรับแจ้งเหตุน้ำท่วม เทศบาลตำบลหนองไม้แดง</span>
+        </div>
+    </div>
+    <div style="text-align: right;">
+        <span id="clock" style="font-size: 12px; font-weight: 600;"></span>
+    </div>
+</header>
+
+<div class="mobile-bar" onclick="toggleSidebar()">
+    📱 กดเพื่อ สลับมุมมองแผนที่ / แผงรายงานเหตุ
+</div>
+
+<div class="main-layout">
+    <!-- แผนที่ interactive -->
+    <div id="map"></div>
+
+    <!-- แผงควบคุมด้านข้าง -->
+    <div class="sidebar" id="sidebar">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('report-tab', this)">📌 ประชาชนแจ้งเหตุ</button>
+            <button class="tab-btn" onclick="switchTab('sos-tab', this)">🚨 ศูนย์กู้ภัย/SOS (<span id="sosBadgeCount">0</span>)</button>
+            <button class="tab-btn" onclick="switchTab('history-tab', this)">📊 สถิติ/ย้อนหลัง</button>
+        </div>
+
+        <!-- TAB 1: ฟอร์มรายงานเหตุจากประชาชน/จิตอาสา -->
+        <div id="report-tab" class="tab-content active">
+            <div class="card card-info">
+                <h4 style="color:#0b3c5d; margin-bottom:8px;">📢 รายงานระดับน้ำ / แจ้งขอความช่วยเหลือ</h4>
+                <form id="floodReportForm">
+                    <div class="form-group">
+                        <label>สถานที่ / จุดสังเกต / ชื่อถนน:</label>
+                        <input type="text" id="repLocation" placeholder="เช่น ซอยข้าง รร.ศรีพโลทัย หรือ ถ.บายพาส" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>ประเมินระดับน้ำท่วมขัง:</label>
+                        <select id="repWaterLevel">
+                            <option value="15">น้ำท่วมขังเล็กน้อย (0-15 cm) - รถทุกชนิดผ่านได้</option>
+                            <option value="30">น้ำท่วมสูง (15-40 cm) - รถเล็กควรระวัง / รถสูงผ่านได้</option>
+                            <option value="60">วิกฤต (40-80 cm) - รถผ่านไม่ได้ โซนต้องใช้เรือ 🚤</option>
+                            <option value="100">วิกฤตสูงมาก (>80 cm) - โซนอันตรายเร่งด่วน ⚠️</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>แนบรูปภาพสถานที่จริง (เลือกแนบหรือไม่แนบก็ได้):</label>
+                        <input type="file" id="repImage" accept="image/*" onchange="previewFile()">
+                        <img id="imagePreview" class="img-preview" style="display:none;">
+                    </div>
+
+                    <!-- SOS Emergency Checkbox -->
+                    <div class="sos-alert-box">
+                        <label style="color:#d9534f; font-weight:bold; cursor:pointer; font-size:13px;">
+                            <input type="checkbox" id="repIsPatient"> 🚨 ต้องการความช่วยเหลือด่วน / มีผู้ป่วยติดเตียง
+                        </label>
+                        <div id="patientSection" style="display:none; margin-top:8px;">
+                            <input type="text" id="repPatientDetail" placeholder="ระบุรายละเอียด เช่น ผู้ป่วยติดเตียง 1 ราย ต้องการอพยพ" style="margin-bottom:6px;">
+                            <input type="text" id="repContactPhone" placeholder="เบอร์โทรศัพท์ติดต่อกลับเร่งด่วน">
+                            <small style="color:#d9534f; display:block; margin-top:4px;">* ระบบจะยิงสัญญาณแจ้งเตือนไปยังเทศบาลต.หนองไม้แดง และทีมกู้ภัยโดยตรง</small>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-submit">ส่งรายงานเข้าศูนย์สั่งการ</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB 2: ศูนย์กู้ภัย / เคส SOS และ Triage -->
+        <div id="sos-tab" class="tab-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="color:#d9534f;">🚨 รายการเคส SOS & ผู้ป่วยติดเตียง</h4>
+                <span class="badge badge-red" id="activeSosCount">0 เคสรอช่วยเหลือ</span>
+            </div>
+            <div id="sosContainer">
+                <!-- ข้อมูลเคสฉุกเฉินจะถูกสร้างผ่าน JS -->
+            </div>
+        </div>
+
+        <!-- TAB 3: ดูข้อมูลย้อนหลัง & สถิติ -->
+        <div id="history-tab" class="tab-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="color:#0b3c5d;">📊 แดชบอร์ดสรุปสถิติย้อนหลัง</h4>
+                <button class="btn btn-export" onclick="exportToCSV()">📥 Export CSV</button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="num" id="statTotal">0</div>
+                    <div class="label">รายงานทั้งหมด</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num" style="color:#d9534f;" id="statCritical">0</div>
+                    <div class="label">เคสวิกฤต / SOS</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>กรอกช่วงเวลาดูย้อนหลัง:</label>
+                <select id="filterTime" onchange="renderHistoryTable()">
+                    <option value="all">ข้อมูลทั้งหมด</option>
+                    <option value="24h">24 ชั่วโมงล่าสุด</option>
+                    <option value="7d">7 วันล่าสุด</option>
+                </select>
+            </div>
+
+            <div id="historyTableContainer">
+                <!-- ตารางข้อมูลย้อนหลัง -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // อัปเดตเวลาเรียลไทม์
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toLocaleString('th-TH');
+    }, 1000);
+
+    // Toggle Mobile Sidebar
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.style.transform = sidebar.style.transform === 'translateY(-100%)' ? 'translateY(0)' : 'translateY(-100%)';
+    }
+
+    // สลับ Tab
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    // Toggle รายละเอียดผู้ป่วย
+    document.getElementById('repIsPatient').addEventListener('change', function() {
+        document.getElementById('patientSection').style.display = this.checked ? 'block' : 'none';
+    });
+
+    // Preview รูปภาพแนบ
+    function previewFile() {
+        const preview = document.getElementById('imagePreview');
+        const file = document.getElementById('repImage').files[0];
+        const reader = new FileReader();
+
+        reader.onloadend = function () {
+            preview.src = reader.result;
+            preview.style.display = 'block';
+        }
+
+        if (file) {
+            reader.readAsDataURL(file);
+        } else {
+            preview.src = "";
+            preview.style.display = 'none';
+        }
+    }
+
+    // 1. ตั้งค่าแผนที่ Leaflet - พิกัดเทศบาลตำบลหนองไม้แดง
+    const map = L.map('map').setView([13.4168, 101.0025], 14);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© เทศบาลตำบลหนองไม้แดง | NMD FloodWatch'
+    }).addTo(map);
+
+    // ฟังก์ชันสร้าง Google Maps Deep Link
+    function makeGmapsUrl(lat, lng) {
+        return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    }
+
+    // 2. มาร์กเกอร์จุดสำคัญ (Landmarks)
+    const landmarks = [
+        { name: "โรงเรียนศรีพโลทัย", coords: [13.4210, 101.0010] },
+        { name: "โรงเรียนห้วยสาลิกา", coords: [13.4080, 101.0080] },
+        { name: "สำนักงานเทศบาลตำบลหนองไม้แดง", coords: [13.4168, 101.0025] }
+    ];
+
+    landmarks.forEach(lm => {
+        L.marker(lm.coords).addTo(map)
+            .bindPopup(`<b>🏫 ${lm.name}</b><br><a href="${makeGmapsUrl(lm.coords[0], lm.coords[1])}" target="_blank">🗺️ เปิดใน Google Maps</a>`);
+    });
+
+    // 3. ข้อมูลรายงานน้ำท่วม (Data Store)
+    let floodReports = [
+        {
+            id: 1,
+            location: "ซอยข้างโรงเรียนศรีพโลทัย",
+            waterLevel: 65,
+            isPatient: true,
+            patientDetail: "ผู้ป่วยติดเตียงต้องการอพยพด่วน 1 ราย",
+            phone: "081-234-5678",
+            coords: [13.4220, 101.0015],
+            timestamp: new Date().toISOString(),
+            image: null
+        },
+        {
+            id: 2,
+            location: "ถนนเส้นทางไปโรงเรียนห้วยสาลิกา",
+            waterLevel: 25,
+            isPatient: false,
+            patientDetail: "-",
+            phone: "-",
+            coords: [13.4090, 101.0075],
+            timestamp: new Date(Date.now() - 3600000).toISOString(),
+            image: null
+        }
+    ];
+
+    // ฟังก์ชันอัปเดตการแสดงผลข้อมูล
+    function updateSystem() {
+        renderSOSList();
+        renderHistoryTable();
+        updateStats();
+    }
+
+    // แสดงรายการ SOS ฉุกเฉิน
+    function renderSOSList() {
+        const container = document.getElementById('sosContainer');
+        container.innerHTML = "";
+        
+        const sosCases = floodReports.filter(r => r.isPatient);
+        document.getElementById('sosBadgeCount').innerText = sosCases.length;
+        document.getElementById('activeSosCount').innerText = `${sosCases.length} เคสรอช่วยเหลือ`;
+
+        if(sosCases.length === 0) {
+            container.innerHTML = `<div style="text-align:center; color:#888; padding:20px;">ไม่มีเคสแจ้งขอความช่วยเหลือ SOS ในขณะนี้</div>`;
+            return;
+        }
+
+        sosCases.forEach(r => {
+            const gmapsUrl = makeGmapsUrl(r.coords[0], r.coords[1]);
+            const card = document.createElement('div');
+            card.className = "card card-danger";
+
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:start;">
+                    <b>📍 ${r.location}</b>
+                    <span class="badge badge-red">น้ำท่วม ${r.waterLevel} cm</span>
+                </div>
+                <div style="color:#d9534f; font-weight:bold; font-size:13px; margin: 6px 0;">
+                    🚨 SOS: ${r.patientDetail}
+                </div>
+                <div style="font-size:12px; color:#555;">📞 เบอร์ติดต่อ: <b>${r.phone}</b></div>
+                <div style="font-size:11px; color:#888; margin-top:2px;">🕒 เวลาแจ้งเหตุ: ${new Date(r.timestamp).toLocaleTimeString('th-TH')}</div>
+                ${r.image ? `<img src="${r.image}" class="img-preview">` : ''}
+                <a href="${gmapsUrl}" target="_blank" class="btn btn-gmaps">
+                    🗺️ นำทางทีมกู้ภัยเข้าพื้นที่ (Google Maps)
+                </a>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // แสดงตารางประวัติย้อนหลัง
+    function renderHistoryTable() {
+        const container = document.getElementById('historyTableContainer');
+        container.innerHTML = "";
+
+        const table = document.createElement('table');
+        table.style.width = "100%";
+        table.style.fontSize = "12px";
+        table.style.borderCollapse = "collapse";
+        
+        table.innerHTML = `
+            <thead>
+                <tr style="background:#0b3c5d; color:white; text-align:left;">
+                    <th style="padding:6px;">เวลา</th>
+                    <th style="padding:6px;">สถานที่</th>
+                    <th style="padding:6px;">ระดับน้ำ</th>
+                    <th style="padding:6px;">ประเภท</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${floodReports.map(r => `
+                    <tr style="border-bottom:1px solid #ddd;">
+                        <td style="padding:6px;">${new Date(r.timestamp).toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'})}</td>
+                        <td style="padding:6px;">${r.location}</td>
+                        <td style="padding:6px;"><span class="badge ${r.waterLevel > 50 ? 'badge-red' : 'badge-orange'}">${r.waterLevel} cm</span></td>
+                        <td style="padding:6px;">${r.isPatient ? '<span class="badge badge-red">SOS</span>' : 'ทั่วไป'}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        `;
+        container.appendChild(table);
+    }
+
+    // อัปเดตตัวเลขสถิติ
+    function updateStats() {
+        document.getElementById('statTotal').innerText = floodReports.length;
+        document.getElementById('statCritical').innerText = floodReports.filter(r => r.isPatient || r.waterLevel >= 60).length;
+    }
+
+    // ปักหมุดเคสเดิมลงแผนที่
+    floodReports.forEach(r => addMarkerToMap(r));
+
+    function addMarkerToMap(r) {
+        const gmapsUrl = makeGmapsUrl(r.coords[0], r.coords[1]);
+        const marker = L.circleMarker(r.coords, {
+            color: r.isPatient ? 'red' : (r.waterLevel > 50 ? 'orange' : 'blue'),
+            radius: r.isPatient ? 10 : 7
+        }).addTo(map);
+
+        marker.bindPopup(`
+            <div style="width:200px;">
+                <b>📌 ${r.location}</b><br>
+                <span class="badge ${r.waterLevel > 50 ? 'badge-red' : 'badge-orange'}">น้ำท่วม ${r.waterLevel} cm</span><br>
+                ${r.isPatient ? `<div style="color:red; font-size:12px; font-weight:bold; margin-top:4px;">🚨 SOS: ${r.patientDetail}</div>` : ''}
+                ${r.image ? `<img src="${r.image}" style="width:100%; border-radius:4px; margin-top:4px;">` : ''}
+                <a href="${gmapsUrl}" target="_blank" class="btn btn-gmaps" style="margin-top:6px; font-size:11px; padding:4px;">
+                    🗺️ นำทางด้วย Google Maps
+                </a>
+            </div>
+        `);
+    }
+
+    // 4. จัดการการส่งฟอร์มแจ้งเหตุจากประชาชน
+    document.getElementById('floodReportForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const loc = document.getElementById('repLocation').value;
+        const level = parseInt(document.getElementById('repWaterLevel').value);
+        const isPatient = document.getElementById('repIsPatient').checked;
+        const patientDetail = document.getElementById('repPatientDetail').value || "ต้องการความช่วยเหลือ";
+        const phone = document.getElementById('repContactPhone').value || "-";
+        const imgInput = document.getElementById('repImage');
+
+        // สุ่มพิกัดจำลองในเขตหนองไม้แดง
+        const newLat = 13.4168 + (Math.random() - 0.5) * 0.018;
+        const newLng = 101.0025 + (Math.random() - 0.5) * 0.018;
+
+        const processSubmission = (imageData) => {
+            const newReport = {
+                id: Date.now(),
+                location: loc,
+                waterLevel: level,
+                isPatient: isPatient,
+                patientDetail: patientDetail,
+                phone: phone,
+                coords: [newLat, newLng],
+                timestamp: new Date().toISOString(),
+                image: imageData
+            };
+
+            floodReports.unshift(newReport);
+            addMarkerToMap(newReport);
+            updateSystem();
+
+            // ส่งการแจ้งเตือนจำลองไปยังเทศบาล/กู้ภัย
+            if (isPatient) {
+                alert(`🚨 [สัญญาณเตือนด่วน!] ส่งข้อมูลเคสผู้ป่วยไปยังศูนย์กู้ภัยและบรรเทาสาธารณภัย เทศบาลต.หนองไม้แดง เรียบร้อยแล้ว`);
+                switchTab('sos-tab', document.querySelectorAll('.tab-btn')[1]);
+            } else {
+                alert("ส่งข้อมูลรายงานสถานการณ์น้ำท่วมเรียบร้อยแล้ว ขอบคุณที่ร่วมแจ้งข้อมูล");
+            }
+
+            // ล้างฟอร์ม
+            this.reset();
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('patientSection').style.display = 'none';
+        };
+
+        if (imgInput.files && imgInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) { processSubmission(e.target.result); };
+            reader.readAsDataURL(imgInput.files[0]);
+        } else {
+            processSubmission(null);
+        }
+    });
+
+    // 5. ส่งออกไฟล์ CSV
+    function exportToCSV() {
+        let csvContent = "data:text/csv;charset=utf-8,ID,Location,WaterLevel_cm,Is_SOS,Patient_Detail,Phone,Timestamp\n";
+        
+        floodReports.forEach(r => {
+            csvContent += `${r.id},"${r.location}",${r.waterLevel},${r.isPatient},"${r.patientDetail}","${r.phone}",${r.timestamp}\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `NMD_Flood_Report_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // เริ่มต้นระบบ
+    updateSystem();
+</script>
+</body>
+</html>
