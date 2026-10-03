@@ -27,12 +27,11 @@
         .filter-box { background: #f1f5f9; border-radius: 10px; padding: 8px 14px; cursor: pointer; border: 1px solid #cbd5e1; font-weight: 500; }
         .footer-sticky { position: sticky; bottom: 0; z-index: 1000; background: #ffffff; border-top: 2px solid #e2e8f0; padding: 10px 0; }
         
-        /* Layout กล้อง CCTV แบบแยกส่วน (แผนที่บน / วิดีโอล่าง) */
-        .cctv-map-container { height: 350px; width: 100%; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; margin-bottom: 15px; }
-        .cctv-video-container { position: relative; width: 100%; height: 500px; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; background: #000; }
+        /* Layout กล้อง CCTV แบบไม่มีแผนที่บน */
+        .cctv-video-container { position: relative; width: 100%; height: 600px; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; background: #000; }
         .cctv-iframe { width: 100%; height: 100%; border: 0; }
 
-        .cam-btn { border-radius: 8px; font-weight: 500; font-size: 0.85rem; padding: 6px 12px; transition: all 0.2s; }
+        .cam-btn { border-radius: 8px; font-weight: 500; font-size: 0.88rem; padding: 8px 14px; transition: all 0.2s; }
         .cam-btn.active { background-color: #0284c7 !important; color: white !important; border-color: #0284c7 !important; }
 
         .need-tag { display: inline-block; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; margin-right: 4px; margin-top: 4px; }
@@ -84,8 +83,8 @@
                 <div class="custom-card p-3">
                     <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.8rem;">เมนูบริการ</h6>
                     <div class="nav flex-column nav-pills" role="tablist">
-                        <button class="nav-link active" id="btn-tab1" data-bs-toggle="pill" data-bs-target="#tab-cctv" onclick="initCctvMap()">
-                            <i class="fa-solid fa-video me-2 text-danger"></i> 1. กล้อง CCTV สด (เชื่อมโยงตามจุด)
+                        <button class="nav-link active" id="btn-tab1" data-bs-toggle="pill" data-bs-target="#tab-cctv">
+                            <i class="fa-solid fa-video me-2 text-danger"></i> 1. กล้อง CCTV จราจรและจุดเฝ้าระวัง
                         </button>
                         <button class="nav-link" id="btn-tab2" data-bs-toggle="pill" data-bs-target="#tab-map1" onclick="initMap1()">
                             <i class="fa-solid fa-map-location-dot me-2"></i> 2. แผนที่จุดแจ้งเหตุ & จุดเสี่ยง
@@ -104,43 +103,35 @@
             <div class="col-lg-9 col-md-8">
                 <div class="tab-content">
                     
-                    <!-- TAB 1: CCTV Stream (คลิกหมุดแล้ววิดีโอเปลี่ยนตามจุด) -->
+                    <!-- TAB 1: CCTV Stream เฉพาะระบบกล้อง (เอาแผนที่บนออกแล้ว) -->
                     <div class="tab-pane fade show active" id="tab-cctv">
                         <div class="custom-card">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div>
-                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-video text-danger me-2"></i>ระบบกล้อง CCTV จราจรและจุดเฝ้าระวังน้ำท่วม (เขตเมืองดอนหัวฬ่อ)</h5>
-                                    <small class="text-muted">ส่วนที่ 1: คลิกเลือกหมุดบนแผนที่ | ส่วนที่ 2: สัญญาณภาพถ่ายทอดสดของกล้องนั้นๆ จะแสดงผลทันทีด้านล่าง</small>
+                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-video text-danger me-2"></i>ระบบถ่ายทอดสดกล้อง CCTV จราจรเฝ้าระวังน้ำท่วม</h5>
+                                    <small class="text-muted">เลือกจุดกล้องที่ต้องการรับชมสัญญาณสดได้จากเมนูด้านล่าง</small>
                                 </div>
                                 <a href="https://cctv.dhr.go.th/" target="_blank" class="btn btn-sm btn-outline-secondary">
                                     <i class="fa-solid fa-up-right-from-square me-1"></i> เปิดเว็บเต็มระบบ cctv.dhr.go.th
                                 </a>
                             </div>
 
-                            <!-- ส่วนที่ 1: แผนที่ตำแหน่งกล้องดอนหัวฬ่อ -->
+                            <!-- ปุ่มทางลัดเลือกกล้องดูง่าย -->
                             <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <small class="fw-bold text-secondary"><i class="fa-solid fa-location-dot me-1 text-primary"></i> 1. แผนที่ระบุจุดตั้งกล้อง (คลิกหมุด แล้วกด "รับชมกล้องนี้"):</small>
-                                </div>
-                                <div id="cctvMap" class="cctv-map-container"></div>
-                            </div>
-
-                            <!-- ปุ่มทางลัดเลือกกล้อง -->
-                            <div class="mb-3">
-                                <small class="fw-bold text-secondary d-block mb-2"><i class="fa-solid fa-hand-pointer me-1 text-primary"></i> หรือกดปุ่มทางลัดเลือกกล้อง:</small>
+                                <small class="fw-bold text-secondary d-block mb-2"><i class="fa-solid fa-hand-pointer me-1 text-primary"></i> เลือกมุมมอง / ตำแหน่งกล้อง:</small>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <button id="cam-btn-1" class="btn btn-outline-primary cam-btn active" onclick="selectCamera(1)"><i class="fa-solid fa-camera me-1"></i> 1. สี่แยกดอนหัวฬ่อ (ขาเข้า)</button>
+                                    <button id="cam-btn-0" class="btn btn-outline-secondary cam-btn active" onclick="selectCamera(0)"><i class="fa-solid fa-table-cells-large me-1"></i> แสดงผลทุกกล้อง (ระบบรวม)</button>
+                                    <button id="cam-btn-1" class="btn btn-outline-primary cam-btn" onclick="selectCamera(1)"><i class="fa-solid fa-camera me-1"></i> 1. สี่แยกดอนหัวฬ่อ (ขาเข้า)</button>
                                     <button id="cam-btn-2" class="btn btn-outline-primary cam-btn" onclick="selectCamera(2)"><i class="fa-solid fa-camera me-1"></i> 2. สี่แยกดอนหัวฬ่อ (ขาออก)</button>
                                     <button id="cam-btn-3" class="btn btn-outline-primary cam-btn" onclick="selectCamera(3)"><i class="fa-solid fa-camera me-1"></i> 3. หน้าสถานีดับเพลิงดอนหัวฬ่อ</button>
                                     <button id="cam-btn-4" class="btn btn-outline-primary cam-btn" onclick="selectCamera(4)"><i class="fa-solid fa-camera me-1"></i> 4. ถนนสัตตพงษ์ - ดอนหัวฬ่อ</button>
-                                    <button id="cam-btn-0" class="btn btn-outline-secondary cam-btn" onclick="selectCamera(0)"><i class="fa-solid fa-table-cells-large me-1"></i> รวมทุกกล้องระบบใหญ่</button>
                                 </div>
                             </div>
 
-                            <!-- ส่วนที่ 2: จอวิดีโอแสดงผลสดตามจุดที่เลือก -->
+                            <!-- จอแสดงผลสัญญาณวิดีโอสด -->
                             <div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <small class="fw-bold text-danger"><i class="fa-solid fa-circle-play me-1"></i> 2. จอแสดงผลสด: <span id="currentCamName" class="text-dark">1. สี่แยกไฟแดงดอนหัวฬ่อ - ขาเข้า</span></small>
+                                    <small class="fw-bold text-danger"><i class="fa-solid fa-circle-play me-1"></i> จอแสดงผลภาพสด: <span id="currentCamName" class="text-dark">ระบบรวมทุกกล้องสด</span></small>
                                     <span class="badge bg-danger">LIVE</span>
                                 </div>
                                 <div class="cctv-video-container">
@@ -487,100 +478,35 @@
         }
 
         // -------------------------------------------------------------
-        // CCTV MAP & DYNAMIC VIDEO STREAM SWITCHING (แก้ไขให้ลิงก์ตรงจุด)
+        // CCTV DYNAMIC VIDEO SWITCHING
         // -------------------------------------------------------------
-        let cctvMap;
-        
-        // ข้อมูลพิกัดและ ลิงก์ Stream ประจำจุดกล้องดอนหัวฬ่อ
         const cameraData = [
-            { 
-                id: 1, 
-                name: '1. สี่แยกไฟแดงดอนหัวฬ่อ (ขาเข้า)', 
-                lat: 13.4075, 
-                lng: 101.0375, 
-                streamUrl: 'https://cctv.dhr.go.th/?cam=1' 
-            },
-            { 
-                id: 2, 
-                name: '2. สี่แยกไฟแดงดอนหัวฬ่อ (ขาออก)', 
-                lat: 13.4072, 
-                lng: 101.0380, 
-                streamUrl: 'https://cctv.dhr.go.th/?cam=2' 
-            },
-            { 
-                id: 3, 
-                name: '3. หน้าสถานีดับเพลิงดอนหัวฬ่อ', 
-                lat: 13.4110, 
-                lng: 101.0340, 
-                streamUrl: 'https://cctv.dhr.go.th/?cam=3' 
-            },
-            { 
-                id: 4, 
-                name: '4. ถนนสัตตพงษ์ - ดอนหัวฬ่อ', 
-                lat: 13.4200, 
-                lng: 101.0450, 
-                streamUrl: 'https://cctv.dhr.go.th/?cam=4' 
-            }
+            { id: 1, name: '1. สี่แยกไฟแดงดอนหัวฬ่อ (ขาเข้า)', streamUrl: 'https://cctv.dhr.go.th/?cam=1' },
+            { id: 2, name: '2. สี่แยกไฟแดงดอนหัวฬ่อ (ขาออก)', streamUrl: 'https://cctv.dhr.go.th/?cam=2' },
+            { id: 3, name: '3. หน้าสถานีดับเพลิงดอนหัวฬ่อ', streamUrl: 'https://cctv.dhr.go.th/?cam=3' },
+            { id: 4, name: '4. ถนนสัตตพงษ์ - ดอนหัวฬ่อ', streamUrl: 'https://cctv.dhr.go.th/?cam=4' }
         ];
 
-        function initCctvMap() {
-            setTimeout(() => {
-                if (!cctvMap) {
-                    // กำหนดจุดศูนย์กลางที่เทศบาลเมืองดอนหัวฬ่อ
-                    cctvMap = L.map('cctvMap').setView([13.4100, 101.0380], 14);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(cctvMap);
-
-                    // สร้างหมุดบนแผนที่ พร้อมผูกเหตุการณ์คลิกเลือกกล้อง
-                    cameraData.forEach(cam => {
-                        let marker = L.marker([cam.lat, cam.lng]).addTo(cctvMap);
-                        marker.bindPopup(`
-                            <div class="text-center p-1">
-                                <strong class="d-block text-primary mb-1">${cam.name}</strong>
-                                <small class="text-muted d-block mb-2">เขตเทศบาลเมืองดอนหัวฬ่อ</small>
-                                <button class="btn btn-sm btn-danger fw-bold w-100" onclick="selectCamera(${cam.id})">
-                                    <i class="fa-solid fa-circle-play me-1"></i> รับชมกล้องนี้
-                                </button>
-                            </div>
-                        `);
-                    });
-                }
-                cctvMap.invalidateSize();
-            }, 200);
-        }
-
-        // ฟังก์ชั่นสลับวิดีโอกล้อง + เลื่อนมุมมองแผนที่ + ไฮไลท์ปุ่ม
         function selectCamera(camId) {
             const iframe = document.getElementById('cctvIframe');
             const camTitle = document.getElementById('currentCamName');
 
-            // รีเซ็ตสถานะปุ่มกดทั้งหมด
+            // รีเซ็ตสถานะปุ่มกด
             document.querySelectorAll('.cam-btn').forEach(btn => btn.classList.remove('active'));
 
             if (camId === 0) {
-                // กรณีเลือกดูรวมทุกกล้อง
-                camTitle.innerText = "ระบบรวมทุกกล้อง (เทศบาลเมืองดอนหัวฬ่อ)";
+                camTitle.innerText = "ระบบรวมทุกกล้องสด (เทศบาลเมืองดอนหัวฬ่อ)";
                 iframe.src = "https://cctv.dhr.go.th/";
                 document.getElementById('cam-btn-0').classList.add('active');
-                if (cctvMap) cctvMap.setView([13.4100, 101.0380], 14);
                 return;
             }
 
             const targetCam = cameraData.find(c => c.id === camId);
             if (targetCam) {
-                // 1. เปลี่ยนชื่อหัวข้อกล้องด้านล่าง
                 camTitle.innerText = targetCam.name;
-                
-                // 2. โหลดลิงก์วิดีโอสดเฉพาะกล้องนั้นๆ
                 iframe.src = targetCam.streamUrl;
-
-                // 3. ปรับไฮไลท์ปุ่มทางลัดให้ตรงกับกล้องที่เลือก
                 const activeBtn = document.getElementById(`cam-btn-${camId}`);
                 if (activeBtn) activeBtn.classList.add('active');
-
-                // 4. Pan แผนที่ด้านบนไปยังตำแหน่งหมุดของกล้องนั้นๆ
-                if (cctvMap) {
-                    cctvMap.setView([targetCam.lat, targetCam.lng], 16);
-                }
             }
         }
 
@@ -646,7 +572,6 @@
 
         window.onload = function() {
             fetchCanalWaterLevels();
-            initCctvMap();
         };
     </script>
 </body>
