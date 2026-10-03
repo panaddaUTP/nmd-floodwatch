@@ -22,17 +22,26 @@
         .nav-pills .nav-link.active { background-color: #0284c7; color: white; }
         
         .custom-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08); padding: 20px; margin-bottom: 20px; }
-        .map-frame { height: 500px; width: 100%; border-radius: 12px; background-color: #e2e8f0; }
+        .map-frame { height: 450px; width: 100%; border-radius: 12px; background-color: #e2e8f0; }
 
         .filter-box { background: #f1f5f9; border-radius: 10px; padding: 8px 14px; cursor: pointer; border: 1px solid #cbd5e1; font-weight: 500; }
         .footer-sticky { position: sticky; bottom: 0; z-index: 1000; background: #ffffff; border-top: 2px solid #e2e8f0; padding: 10px 0; }
         
-        .cctv-frame-container { position: relative; width: 100%; height: 550px; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; }
+        /* Layout กล้อง CCTV แบบแยกส่วน (แผนที่บน / วิดีโอล่าง) */
+        .cctv-map-container { height: 320px; width: 100%; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; margin-bottom: 15px; }
+        .cctv-video-container { position: relative; width: 100%; height: 480px; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; background: #000; }
         .cctv-iframe { width: 100%; height: 100%; border: 0; }
 
+        .cam-btn { border-radius: 8px; font-weight: 500; font-size: 0.85rem; padding: 6px 12px; }
+        
         .need-tag { display: inline-block; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; margin-right: 4px; margin-top: 4px; }
         .chk-box-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; background: #f8fafc; transition: all 0.2s; cursor: pointer; }
         .chk-box-card:hover { background: #f1f5f9; }
+
+        /* พรีวิวรูปภาพ */
+        .img-preview-box { max-height: 180px; border-radius: 8px; border: 1px solid #cbd5e1; object-fit: cover; display: none; }
+        .report-img-thumb { width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s; }
+        .report-img-thumb:hover { transform: scale(1.02); }
     </style>
 </head>
 <body>
@@ -49,7 +58,6 @@
             </div>
             
             <div class="d-flex align-items-center gap-2">
-                <!-- ปุ่มแจ้งเหตุน้ำท่วมสำหรับประชาชน -->
                 <button class="btn btn-danger fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
                     <i class="fa-solid fa-triangle-exclamation me-1"></i> แจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ
                 </button>
@@ -76,8 +84,8 @@
                 <div class="custom-card p-3">
                     <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.8rem;">เมนูบริการ</h6>
                     <div class="nav flex-column nav-pills" role="tablist">
-                        <button class="nav-link active" id="btn-tab1" data-bs-toggle="pill" data-bs-target="#tab-cctv">
-                            <i class="fa-solid fa-video me-2 text-danger"></i> 1. กล้อง CCTV สด (ดอนหัวฬ่อ/พื้นที่ใกล้เคียง)
+                        <button class="nav-link active" id="btn-tab1" data-bs-toggle="pill" data-bs-target="#tab-cctv" onclick="initCctvMap()">
+                            <i class="fa-solid fa-video me-2 text-danger"></i> 1. กล้อง CCTV สด (แยกส่วนดูง่าย)
                         </button>
                         <button class="nav-link" id="btn-tab2" data-bs-toggle="pill" data-bs-target="#tab-map1" onclick="initMap1()">
                             <i class="fa-solid fa-map-location-dot me-2"></i> 2. แผนที่จุดแจ้งเหตุ & จุดเสี่ยง
@@ -96,21 +104,48 @@
             <div class="col-lg-9 col-md-8">
                 <div class="tab-content">
                     
-                    <!-- TAB 1: CCTV Stream จาก เทศบาลตำบลดอนหัวฬ่อ -->
+                    <!-- TAB 1: CCTV Stream แบบแยกส่วน (แผนที่บน - วิดีโอล่าง + ปุ่มเลือกกล้องง่าย) -->
                     <div class="tab-pane fade show active" id="tab-cctv">
                         <div class="custom-card">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div>
-                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-video text-danger me-2"></i>กล้อง CCTV จราจรและระดับน้ำสด (เทศบาลดอนหัวฬ่อ)</h5>
-                                    <small class="text-muted">เชื่อมต่อสัญญาณสดโดยตรงจาก cctv.dhr.go.th ครอบคลุมพื้นที่รอยต่อหนองไม้แดง-ดอนหัวฬ่อ</small>
+                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-video text-danger me-2"></i>ระบบกล้อง CCTV จราจรและจุดเฝ้าระวังน้ำท่วม</h5>
+                                    <small class="text-muted">ส่วนที่ 1: แผนที่ตำแหน่งกล้อง | ส่วนที่ 2: หน้าจอถ่ายทอดสดสัญญาณวิดีโอ</small>
                                 </div>
                                 <a href="https://cctv.dhr.go.th/" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fa-solid fa-up-right-from-square me-1"></i> เปิดเว็บ CCTV ดอนหัวฬ่อ
+                                    <i class="fa-solid fa-up-right-from-square me-1"></i> เปิดเว็บเต็มระบบ
                                 </a>
                             </div>
 
-                            <div class="cctv-frame-container">
-                                <iframe src="https://cctv.dhr.go.th/" class="cctv-iframe" title="CCTV Don Hualo Live"></iframe>
+                            <!-- ส่วนที่ 1: แผนที่ตำแหน่งกล้องด้านบน -->
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="fw-bold text-secondary"><i class="fa-solid fa-location-dot me-1 text-primary"></i> 1. เลือกตำแหน่งกล้องจากแผนที่ด้านบน:</small>
+                                </div>
+                                <div id="cctvMap" class="cctv-map-container"></div>
+                            </div>
+
+                            <!-- ปุ่มคีย์ลัดเลือกกล้องดูง่าย -->
+                            <div class="mb-3">
+                                <small class="fw-bold text-secondary d-block mb-2"><i class="fa-solid fa-hand-pointer me-1 text-primary"></i> หรือกดเลือกจุดกล้องยอดนิยมได้ทันที:</small>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button class="btn btn-outline-primary cam-btn active" onclick="switchCctvCam(1, 'สี่แยกดอนหัวฬ่อ - ขาเข้า')"><i class="fa-solid fa-camera me-1"></i> 1. สี่แยกดอนหัวฬ่อ (ขาเข้า)</button>
+                                    <button class="btn btn-outline-primary cam-btn" onclick="switchCctvCam(2, 'สี่แยกดอนหัวฬ่อ - ขาออก')"><i class="fa-solid fa-camera me-1"></i> 2. สี่แยกดอนหัวฬ่อ (ขาออก)</button>
+                                    <button class="btn btn-outline-primary cam-btn" onclick="switchCctvCam(3, 'แยกอู่ตะเภา - หนองไม้แดง')"><i class="fa-solid fa-camera me-1"></i> 3. แยกอู่ตะเภา</button>
+                                    <button class="btn btn-outline-primary cam-btn" onclick="switchCctvCam(4, 'ถนนสัตตพงษ์ / นิคมอมตะ')"><i class="fa-solid fa-camera me-1"></i> 4. ถนนสัตตพงษ์</button>
+                                    <button class="btn btn-outline-secondary cam-btn" onclick="switchCctvCam(0, 'มุมมองแบบระบบรวม (Full Grid)')"><i class="fa-solid fa-table-cells-large me-1"></i> แสดงทุกกล้อง (ระบบรวม)</button>
+                                </div>
+                            </div>
+
+                            <!-- ส่วนที่ 2: วิดีโอสดด้านล่าง -->
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <small class="fw-bold text-danger"><i class="fa-solid fa-circle-play me-1"></i> 2. จอแสดงผลสัญญาณสด: <span id="currentCamName" class="text-dark">สี่แยกดอนหัวฬ่อ - ขาเข้า</span></small>
+                                    <span class="badge bg-danger">LIVE</span>
+                                </div>
+                                <div class="cctv-video-container">
+                                    <iframe id="cctvIframe" src="https://cctv.dhr.go.th/" class="cctv-iframe" title="CCTV Live Feed"></iframe>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -119,7 +154,7 @@
                     <div class="tab-pane fade" id="tab-map1">
                         <div class="custom-card">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
-                                <h6 class="fw-bold mb-0"><i class="fa-solid fa-filter me-1 text-primary"></i> ติ๊กกรองสถานะเหตุการณ์:</h6>
+                                <h6 class="fw-bold mb-0"><i class="fa-solid fa-filter me-1 text-primary"></i> กรองสถานะเหตุการณ์:</h6>
                                 <div class="d-flex flex-wrap gap-2">
                                     <label class="filter-box"><input type="checkbox" id="chkNormal" checked onchange="updateMapFilters()"> 🟢 ปกติ</label>
                                     <label class="filter-box"><input type="checkbox" id="chkWarning" checked onchange="updateMapFilters()"> 🟡 เฝ้าระวัง</label>
@@ -130,20 +165,20 @@
                         </div>
                     </div>
 
-                    <!-- TAB 3: Rain Radar Only (เรดาร์ตรวจจับกลุ่มฝนสดเต็มจอ) -->
+                    <!-- TAB 3: Rain Radar Only -->
                     <div class="tab-pane fade" id="tab-map2">
                         <div class="custom-card">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div>
-                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-radar text-info me-2"></i>เรดาร์เคลื่อนไหวตรวจจับกลุ่มฝนสด (RainViewer Tile API)</h5>
-                                    <small class="text-muted">แสดงการเคลื่อนที่ของกลุ่มฝนในเขตอำเภอเมืองชลบุรีและจังหวัดใกล้เคียงแบบเรียลไทม์</small>
+                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-radar text-info me-2"></i>เรดาร์ตรวจจับกลุ่มฝนสด (RainViewer Tile API)</h5>
+                                    <small class="text-muted">แสดงการเคลื่อนที่ของกลุ่มฝนในเขตอำเภอเมืองชลบุรีและจังหวัดใกล้เคียง</small>
                                 </div>
                             </div>
                             <div id="map2" class="map-frame"></div>
                         </div>
                     </div>
 
-                    <!-- TAB 4: Citizens Incident History List & Officer Action -->
+                    <!-- TAB 4: Citizens Incident History List -->
                     <div class="tab-pane fade" id="tab-history">
                         <div class="custom-card">
                             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -161,7 +196,7 @@
         </div>
     </div>
 
-    <!-- Modal ฟอร์มแจ้งเหตุน้ำท่วมสำหรับประชาชน -->
+    <!-- Modal ฟอร์มแจ้งเหตุน้ำท่วมสำหรับประชาชน (พร้อมช่องแนบรูปถ่าย) -->
     <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -185,9 +220,9 @@
                             </select>
                         </div>
 
-                        <!-- ตัวเลือกสำหรับติ๊กขอความช่วยเหลือด่วน -->
+                        <!-- ติ๊กเลือกความช่วยเหลือ -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold text-danger"><i class="fa-solid fa-hand-holding-hand me-1"></i> 3. ความต้องการความช่วยเหลือด่วน (ติ๊กเลือกได้มากกว่า 1 ข้อ)</label>
+                            <label class="form-label fw-bold text-danger"><i class="fa-solid fa-hand-holding-hand me-1"></i> 3. ความต้องการความช่วยเหลือด่วน (ถ้ามี)</label>
                             <div class="row g-2">
                                 <div class="col-md-6">
                                     <div class="chk-box-card">
@@ -221,19 +256,20 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="chk-box-card">
-                                        <div class="form-check">
-                                            <input class="form-check-input chk-need" type="checkbox" value="⚡ ไฟฟ้าตัดขาด" id="need5">
-                                            <label class="form-check-label fw-bold text-warning text-dark" for="need5">⚡ ไฟฟ้าตัดขาด</label>
-                                        </div>
-                                    </div>
-                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ช่องแนบรูปภาพถ่ายน้ำท่วม (Optional) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="fa-solid fa-camera me-1 text-primary"></i> 4. แนบรูปถ่ายสถานการณ์น้ำท่วม (ถ้ามี - ไม่แนบก็ได้)</label>
+                            <input type="file" class="form-control" id="reportImage" accept="image/*" onchange="previewUploadImage(event)">
+                            <div class="mt-2 text-center">
+                                <img id="imagePreview" src="" alt="Image Preview" class="img-preview-box">
                             </div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">4. รายละเอียดเพิ่มเติม / เบอร์โทรติดต่อ <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold">5. รายละเอียดเพิ่มเติม / เบอร์โทรติดต่อ <span class="text-danger">*</span></label>
                             <textarea class="form-control" id="reportDetails" rows="2" placeholder="ระบุเบอร์โทรศัพท์สำหรับให้เจ้าหน้าที่ติดต่อกลับ" required></textarea>
                         </div>
                         <div class="text-end">
@@ -241,6 +277,21 @@
                             <button type="submit" class="btn btn-danger fw-bold"><i class="fa-solid fa-paper-plane me-1"></i> ส่งข้อมูลแจ้งเหตุ</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal ขยายรูปภาพขนาดใหญ่ (Lightbox Image Viewer) -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-dark">
+                <div class="modal-header border-0">
+                    <h6 class="modal-title text-white"><i class="fa-regular fa-image me-1"></i> รูปถ่ายสถานที่แจ้งเหตุ</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-0 pb-3">
+                    <img id="modalFullImage" src="" class="img-fluid rounded" style="max-height: 80vh;" alt="Full Image">
                 </div>
             </div>
         </div>
@@ -262,8 +313,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // Real Citizen Reports Store
         let incidentReports = [];
+        let uploadedBase64Image = "";
 
         // Real-Time Clock
         function updateClock() {
@@ -272,13 +323,38 @@
         }
         setInterval(updateClock, 1000); updateClock();
 
-        // Fetch Real Canal Water Levels from ThaiWater API
+        // Image Upload Preview Function
+        function previewUploadImage(event) {
+            const file = event.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedBase64Image = e.target.result;
+                    preview.src = uploadedBase64Image;
+                    preview.style.display = 'inline-block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                uploadedBase64Image = "";
+                preview.src = "";
+                preview.style.display = 'none';
+            }
+        }
+
+        // Open Full Size Image Modal
+        function showFullImage(src) {
+            document.getElementById('modalFullImage').src = src;
+            const imgModal = new bootstrap.Modal(document.getElementById('imageModal'));
+            imgModal.show();
+        }
+
+        // Fetch Real Canal Water Levels
         async function fetchCanalWaterLevels() {
             const container = document.getElementById('waterLevelContainer');
             try {
                 const res = await fetch('https://api-thaiwater3.thaiwater.net/v2/api/weather/water_level');
                 const data = await res.json();
-                
                 let stations = data.data ? data.data.filter(s => s.station && s.station.province && s.station.province.id === 13) : [];
                 
                 if (stations.length > 0) {
@@ -306,18 +382,15 @@
             }
         }
 
-        // Submit Report Handler with Checkboxes
+        // Submit Report
         function submitReport(e) {
             e.preventDefault();
             const location = document.getElementById('reportLocation').value;
             const status = document.getElementById('reportStatus').value;
             const details = document.getElementById('reportDetails').value;
             
-            // Collect Checkbox values
             let selectedNeeds = [];
-            document.querySelectorAll('.chk-need:checked').forEach(chk => {
-                selectedNeeds.push(chk.value);
-            });
+            document.querySelectorAll('.chk-need:checked').forEach(chk => selectedNeeds.push(chk.value));
 
             const now = new Date();
 
@@ -326,8 +399,9 @@
                 location: location,
                 status: status,
                 needs: selectedNeeds,
+                image: uploadedBase64Image,
                 details: details,
-                officialStatus: 'pending', // pending, in_progress, completed
+                officialStatus: 'pending',
                 timestamp: now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH') + ' น.',
                 lat: 13.4168 + (Math.random() - 0.5) * 0.015,
                 lng: 101.0025 + (Math.random() - 0.5) * 0.015
@@ -335,19 +409,20 @@
 
             incidentReports.unshift(newReport);
 
-            // Close modal & reset form
+            // Reset & Close Modal
             const modalEl = document.getElementById('reportModal');
             const modal = bootstrap.Modal.getInstance(modalEl);
             modal.hide();
             document.getElementById('floodReportForm').reset();
+            document.getElementById('imagePreview').style.display = 'none';
+            uploadedBase64Image = "";
 
-            alert('ขอบคุณสำหรับการแจ้งเหตุ ข้อมูลของท่านถูกส่งถึงเจ้าหน้าที่เรียบร้อยแล้ว');
+            alert('ขอบคุณสำหรับการแจ้งเหตุ ข้อมูลและรูปถ่ายถูกส่งถึงเจ้าหน้าที่เรียบร้อยแล้ว');
             
             updateMapFilters();
             renderHistory();
         }
 
-        // Officer Action: Change Incident Status (เจ้าหน้าที่กดรับทราบ / ดำเนินการ)
         function updateOfficialStatus(id, newStatus) {
             const report = incidentReports.find(r => r.id === id);
             if (report) {
@@ -357,7 +432,7 @@
             }
         }
 
-        // Render History & Official Dashboard
+        // Render History Dashboard
         function renderHistory() {
             const container = document.getElementById('citizenReportsContainer');
             document.getElementById('totalReportBadge').innerText = `${incidentReports.length} รายการ`;
@@ -372,25 +447,28 @@
                 let borderClass = item.status === 'วิกฤต' ? 'border-danger' : (item.status === 'เฝ้าระวัง' ? 'border-warning' : 'border-success');
                 let badgeClass = item.status === 'วิกฤต' ? 'bg-danger' : (item.status === 'เฝ้าระวัง' ? 'bg-warning text-dark' : 'bg-success');
 
-                // Generate Needs HTML
                 let needsHtml = '';
                 if (item.needs && item.needs.length > 0) {
-                    needsHtml = '<div class="mt-2 mb-2">' + item.needs.map(n => `<span class="need-tag">${n}</span>`).join('') + '</div>';
+                    needsHtml = '<div class="mt-1 mb-2">' + item.needs.map(n => `<span class="need-tag">${n}</span>`).join('') + '</div>';
                 }
 
-                // Official Action Status Tag & Button
+                let imageHtml = '';
+                if (item.image) {
+                    imageHtml = `<div class="mt-2 mb-2"><img src="${item.image}" class="report-img-thumb" onclick="showFullImage('${item.image}')" title="กดเพื่อขยายรูปภาพ"></div>`;
+                }
+
                 let officialStatusBadge = '';
                 let actionButtonHtml = '';
 
                 if (item.officialStatus === 'pending') {
                     officialStatusBadge = '<span class="badge bg-secondary"><i class="fa-solid fa-clock me-1"></i> รอดำเนินการ</span>';
-                    actionButtonHtml = `<button class="btn btn-sm btn-primary fw-bold" onclick="updateOfficialStatus(${item.id}, 'in_progress')"><i class="fa-solid fa-user-check me-1"></i> เจ้าหน้ารับทราบแล้ว / ออกปฏิบัติการ</button>`;
+                    actionButtonHtml = `<button class="btn btn-sm btn-primary fw-bold" onclick="updateOfficialStatus(${item.id}, 'in_progress')"><i class="fa-solid fa-user-check me-1"></i> เจ้าหน้ารับเรื่องแล้ว</button>`;
                 } else if (item.officialStatus === 'in_progress') {
-                    officialStatusBadge = '<span class="badge bg-primary"><i class="fa-solid fa-truck-medical me-1"></i> เจ้าหน้าที่กำลังเข้าช่วยเหลือ</span>';
-                    actionButtonHtml = `<button class="btn btn-sm btn-success fw-bold" onclick="updateOfficialStatus(${item.id}, 'completed')"><i class="fa-solid fa-check me-1"></i> ดำเนินการช่วยเหลือเสร็จสิ้น</button>`;
+                    officialStatusBadge = '<span class="badge bg-primary"><i class="fa-solid fa-truck-medical me-1"></i> กำลังเข้าช่วยเหลือ</span>';
+                    actionButtonHtml = `<button class="btn btn-sm btn-success fw-bold" onclick="updateOfficialStatus(${item.id}, 'completed')"><i class="fa-solid fa-check me-1"></i> ช่วยเหลือเสร็จสิ้น</button>`;
                 } else {
                     officialStatusBadge = '<span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> ช่วยเหลือเรียบร้อย</span>';
-                    actionButtonHtml = `<small class="text-success fw-bold"><i class="fa-solid fa-check-double me-1"></i> เจ้าหน้าที่ช่วยเหลือเสร็จสิ้นแล้ว</small>`;
+                    actionButtonHtml = `<small class="text-success fw-bold"><i class="fa-solid fa-check-double me-1"></i> ช่วยเหลือเสร็จสิ้นแล้ว</small>`;
                 }
 
                 container.innerHTML += `
@@ -403,6 +481,7 @@
                             </div>
                         </div>
                         ${needsHtml}
+                        ${imageHtml}
                         <p class="mb-2 text-dark" style="font-size: 0.9rem;"><strong>ติดต่อ/รายละเอียด:</strong> ${item.details}</p>
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top mt-2">
                             <small class="text-secondary"><i class="fa-regular fa-clock me-1"></i>เวลาแจ้ง: ${item.timestamp}</small>
@@ -413,7 +492,44 @@
             });
         }
 
-        // Map Initialize & Marker Filters
+        // CCTV Map & Switching Logic
+        let cctvMap, cctvMarkers = [];
+        const cameraLocations = [
+            { id: 1, name: 'สี่แยกดอนหัวฬ่อ (ขาเข้า)', lat: 13.4140, lng: 101.0180 },
+            { id: 2, name: 'สี่แยกดอนหัวฬ่อ (ขาออก)', lat: 13.4145, lng: 101.0185 },
+            { id: 3, name: 'แยกอู่ตะเภา (หนองไม้แดง)', lat: 13.4190, lng: 101.0010 },
+            { id: 4, name: 'ถนนสัตตพงษ์ / นิคมอมตะ', lat: 13.4220, lng: 101.0250 }
+        ];
+
+        function initCctvMap() {
+            setTimeout(() => {
+                if (!cctvMap) {
+                    cctvMap = L.map('cctvMap').setView([13.4168, 101.0100], 13);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(cctvMap);
+
+                    cameraLocations.forEach(cam => {
+                        let marker = L.marker([cam.lat, cam.lng]).addTo(cctvMap);
+                        marker.bindPopup(`<b>${cam.name}</b><br><button class="btn btn-xs btn-primary mt-1" onclick="switchCctvCam(${cam.id}, '${cam.name}')">ดูสัญญาณกล้องนี้</button>`);
+                    });
+                }
+                cctvMap.invalidateSize();
+            }, 200);
+        }
+
+        function switchCctvCam(camId, camName) {
+            document.getElementById('currentCamName').innerText = camName;
+            const iframe = document.getElementById('cctvIframe');
+            iframe.src = "https://cctv.dhr.go.th/";
+            
+            // Highlight active button
+            const btns = document.querySelectorAll('.cam-btn');
+            btns.forEach(b => b.classList.remove('active'));
+            if(event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
+        }
+
+        // Map 1 & Map 2 Logic
         let map1, map2, markersLayer = [];
 
         function initMap1() {
@@ -446,8 +562,10 @@
                     let color = item.status === 'วิกฤต' ? 'red' : (item.status === 'เฝ้าระวัง' ? 'orange' : 'green');
                     let marker = L.circleMarker([item.lat, item.lng], { color: color, fillColor: color, fillOpacity: 0.85, radius: 10 }).addTo(map1);
                     
+                    let imgTag = item.image ? `<br><img src="${item.image}" style="width:100%; max-height:100px; object-fit:cover; border-radius:6px; margin-top:5px; cursor:pointer;" onclick="showFullImage('${item.image}')">` : '';
                     let needsStr = item.needs ? item.needs.join(', ') : '';
-                    marker.bindPopup(`<b>${item.location}</b><br>ระดับ: <strong>${item.status}</strong><br>ความต้องการ: <span class="text-danger">${needsStr || 'ไม่มี'}</span><br><small>${item.timestamp}</small>`);
+                    
+                    marker.bindPopup(`<b>${item.location}</b><br>ระดับ: <strong>${item.status}</strong><br>ความต้องการ: <span class="text-danger">${needsStr || 'ไม่มี'}</span>${imgTag}<br><small>${item.timestamp}</small>`);
                     markersLayer.push(marker);
                 }
             });
@@ -473,6 +591,7 @@
 
         window.onload = function() {
             fetchCanalWaterLevels();
+            initCctvMap();
         };
     </script>
 </body>
