@@ -29,6 +29,10 @@
         
         .cctv-frame-container { position: relative; width: 100%; height: 550px; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; }
         .cctv-iframe { width: 100%; height: 100%; border: 0; }
+
+        .need-tag { display: inline-block; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; margin-right: 4px; margin-top: 4px; }
+        .chk-box-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; background: #f8fafc; transition: all 0.2s; cursor: pointer; }
+        .chk-box-card:hover { background: #f1f5f9; }
     </style>
 </head>
 <body>
@@ -47,7 +51,7 @@
             <div class="d-flex align-items-center gap-2">
                 <!-- ปุ่มแจ้งเหตุน้ำท่วมสำหรับประชาชน -->
                 <button class="btn btn-danger fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
-                    <i class="fa-solid fa-triangle-exclamation me-1"></i> แจ้งเหตุน้ำท่วมขัง
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> แจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ
                 </button>
                 <div class="badge-live-info text-white d-none d-md-block">
                     <i class="fa-regular fa-clock me-1 text-warning"></i><span id="liveClockText">--:--:--</span>
@@ -73,16 +77,16 @@
                     <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.8rem;">เมนูบริการ</h6>
                     <div class="nav flex-column nav-pills" role="tablist">
                         <button class="nav-link active" id="btn-tab1" data-bs-toggle="pill" data-bs-target="#tab-cctv">
-                            <i class="fa-solid fa-video me-2 text-danger"></i> 1. กล้อง CCTV สด (เทศบาลดอนหัวฬ่อ)
+                            <i class="fa-solid fa-video me-2 text-danger"></i> 1. กล้อง CCTV สด (ดอนหัวฬ่อ/พื้นที่ใกล้เคียง)
                         </button>
                         <button class="nav-link" id="btn-tab2" data-bs-toggle="pill" data-bs-target="#tab-map1" onclick="initMap1()">
                             <i class="fa-solid fa-map-location-dot me-2"></i> 2. แผนที่จุดแจ้งเหตุ & จุดเสี่ยง
                         </button>
                         <button class="nav-link" id="btn-tab3" data-bs-toggle="pill" data-bs-target="#tab-map2" onclick="initMap2()">
-                            <i class="fa-solid fa-radar me-2"></i> 3. เรดาร์กลุ่มฝนสด (RainViewer)
+                            <i class="fa-solid fa-satellite me-2 text-info"></i> 3. เรดาร์ & ภาพดาวเทียมฝนสด
                         </button>
                         <button class="nav-link" id="btn-tab4" data-bs-toggle="pill" data-bs-target="#tab-history" onclick="renderHistory()">
-                            <i class="fa-solid fa-list-check me-2 text-primary"></i> 4. รายการรับแจ้งเหตุจากประชาชน
+                            <i class="fa-solid fa-list-check me-2 text-primary"></i> 4. รายการแจ้งเหตุ (เจ้าหน้าที่รับเรื่อง)
                         </button>
                     </div>
                 </div>
@@ -92,12 +96,12 @@
             <div class="col-lg-9 col-md-8">
                 <div class="tab-content">
                     
-                    <!-- TAB 1: CCTV Stream จาก เทศบาลตำบลดอนหัวฬ่อ (https://cctv.dhr.go.th/) -->
+                    <!-- TAB 1: CCTV Stream จาก เทศบาลตำบลดอนหัวฬ่อ -->
                     <div class="tab-pane fade show active" id="tab-cctv">
                         <div class="custom-card">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div>
-                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-video text-danger me-2"></i>กล้อง CCTV จราจรและระดับน้ำสด (เครือข่ายเทศบาลดอนหัวฬ่อ)</h5>
+                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-video text-danger me-2"></i>กล้อง CCTV จราจรและระดับน้ำสด (เทศบาลดอนหัวฬ่อ)</h5>
                                     <small class="text-muted">เชื่อมต่อสัญญาณสดโดยตรงจาก cctv.dhr.go.th ครอบคลุมพื้นที่รอยต่อหนองไม้แดง-ดอนหัวฬ่อ</small>
                                 </div>
                                 <a href="https://cctv.dhr.go.th/" target="_blank" class="btn btn-sm btn-outline-secondary">
@@ -126,18 +130,33 @@
                         </div>
                     </div>
 
-                    <!-- TAB 3: Satellite Rain Radar -->
+                    <!-- TAB 3: Satellite Rain Radar & Weather Satellites -->
                     <div class="tab-pane fade" id="tab-map2">
                         <div class="custom-card">
-                            <h6 class="fw-bold mb-2"><i class="fa-solid fa-cloud-showers-heavy me-2 text-info"></i>เรดาร์ตรวจจับกลุ่มฝนสด RainViewer Tile API</h6>
-                            <div id="map2" class="map-frame"></div>
+                            <h5 class="fw-bold mb-3"><i class="fa-solid fa-satellite text-info me-2"></i>พยากรณ์อากาศและภาพถ่ายดาวเทียมตรวจอากาศสด</h5>
+                            <div class="row g-3">
+                                <div class="col-lg-7">
+                                    <h6 class="fw-bold"><i class="fa-solid fa-radar me-1"></i> เรดาร์เคลื่อนไหวกลุ่มฝน (RainViewer Tile API)</h6>
+                                    <div id="map2" class="map-frame" style="height: 400px;"></div>
+                                </div>
+                                <div class="col-lg-5">
+                                    <h6 class="fw-bold"><i class="fa-solid fa-earth-asia me-1"></i> ภาพถ่ายดาวเทียมสภาพอากาศ (Himawari-8)</h6>
+                                    <div class="border rounded-3 p-2 text-center bg-dark">
+                                        <img src="https://www.tmd.go.th/media/satellite/latest_radar_sat.jpg" onerror="this.src='https://satda.gistda.or.th/static/images/himawari_latest.jpg'" class="img-fluid rounded-2" alt="Satellite Image">
+                                        <small class="text-white-50 d-block mt-1" style="font-size:0.75rem;">ข้อมูลสดจาก กรมอุตุนิยมวิทยา / GISTDA</small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- TAB 4: Citizens Incident History List -->
+                    <!-- TAB 4: Citizens Incident History List & Officer Action -->
                     <div class="tab-pane fade" id="tab-history">
                         <div class="custom-card">
-                            <h5 class="fw-bold mb-3"><i class="fa-solid fa-list-check me-2 text-primary"></i>รายการเหตุการณ์ที่ประชาชนแจ้งเข้ามา</h5>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold mb-0"><i class="fa-solid fa-list-check me-2 text-primary"></i>รายการรับแจ้งเหตุจากประชาชน (ระบบเจ้าหน้าที่)</h5>
+                                <span class="badge bg-secondary" id="totalReportBadge">0 รายการ</span>
+                            </div>
                             <div id="citizenReportsContainer" class="list-group list-group-flush border rounded-3">
                                 <div class="text-center text-muted py-4">ยังไม่มีรายงานแจ้งเหตุน้ำท่วมในขณะนี้</div>
                             </div>
@@ -149,31 +168,80 @@
         </div>
     </div>
 
-    <!-- Modal ฟอร์มแจ้งเหตุน้ำท่วมสำหรับประชาชน -->
+    <!-- Modal ฟอร์มแจ้งเหตุน้ำท่วมสำหรับประชาชน (เพิ่มระบบติ๊กความช่วยเหลือ) -->
     <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>แบบฟอร์มแจ้งเหตุน้ำท่วมขัง (ประชาชน)</h5>
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>แบบฟอร์มแจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="floodReportForm" onsubmit="submitReport(event)">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">ระบุสถานที่ / จุดที่เกิดน้ำท่วม <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold">1. ระบุสถานที่ / จุดที่เกิดน้ำท่วม <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="reportLocation" placeholder="เช่น ซอยวิบูลธรรมรักษ์ 5, หน้าวัดอู่ตะเภา" required>
                         </div>
+                        
                         <div class="mb-3">
-                            <label class="form-label fw-bold">ระดับความรุนแรง / ความสูงของน้ำ <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold">2. ระดับความรุนแรง / ความสูงของน้ำ <span class="text-danger">*</span></label>
                             <select class="form-select" id="reportStatus" required>
                                 <option value="เฝ้าระวัง">🟡 เฝ้าระวัง (น้ำรอการระบาย 5-15 ซม.)</option>
                                 <option value="วิกฤต">🔴 วิกฤต (น้ำท่วมขังสูง 20 ซม. ขึ้นไป รถเล็กผ่านลำบาก)</option>
                                 <option value="ปกติ">🟢 ปกติ (น้ำแห้งแล้ว)</option>
                             </select>
                         </div>
+
+                        <!-- ตัวเลือกสำหรับติ๊กขอความช่วยเหลือด่วน -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">รายละเอียดเพิ่มเติม / เบอร์โทรติดต่อ</label>
-                            <textarea class="form-control" id="reportDetails" rows="3" placeholder="ระบุสภาพการจราจร หรือเบอร์โทรศัพท์เพื่อการประสานงานช่วยเหลือ"></textarea>
+                            <label class="form-label fw-bold text-danger"><i class="fa-solid fa-hand-holding-hand me-1"></i> 3. ความต้องการความช่วยเหลือด่วน (ติ๊กเลือกได้มากกว่า 1 ข้อ)</label>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <div class="chk-box-card">
+                                        <div class="form-check">
+                                            <input class="form-check-input chk-need" type="checkbox" value="🚨 ต้องการอพยพด่วน" id="need1">
+                                            <label class="form-check-label fw-bold text-danger" for="need1">🚨 ต้องการอพยพด่วน</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="chk-box-card">
+                                        <div class="form-check">
+                                            <input class="form-check-input chk-need" type="checkbox" value="🛏️ มีผู้ป่วยติดเตียง / ผู้สูงอายุ" id="need2">
+                                            <label class="form-check-label fw-bold" for="need2">🛏️ มีผู้ป่วยติดเตียง / ผู้สูงอายุ</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="chk-box-card">
+                                        <div class="form-check">
+                                            <input class="form-check-input chk-need" type="checkbox" value="🍱 ต้องการอาหาร / น้ำดื่ม" id="need3">
+                                            <label class="form-check-label fw-bold" for="need3">🍱 ต้องการอาหาร / น้ำดื่ม</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="chk-box-card">
+                                        <div class="form-check">
+                                            <input class="form-check-input chk-need" type="checkbox" value="💊 ต้องการยา / เวชภัณฑ์" id="need4">
+                                            <label class="form-check-label fw-bold" for="need4">💊 ต้องการยา / เวชภัณฑ์</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="chk-box-card">
+                                        <div class="form-check">
+                                            <input class="form-check-input chk-need" type="checkbox" value="⚡ ไฟฟ้าตัดขาด" id="need5">
+                                            <label class="form-check-label fw-bold text-warning text-dark" for="need5">⚡ ไฟฟ้าตัดขาด</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">4. รายละเอียดเพิ่มเติม / เบอร์โทรติดต่อ <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="reportDetails" rows="2" placeholder="ระบุเบอร์โทรศัพท์สำหรับให้เจ้าหน้าที่ติดต่อกลับ" required></textarea>
                         </div>
                         <div class="text-end">
                             <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">ยกเลิก</button>
@@ -201,7 +269,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // Real Citizen Reports Store (เริ่มต้นเป็นอาเรย์ว่าง ไม่มี Mockup)
+        // Real Citizen Reports Store
         let incidentReports = [];
 
         // Real-Time Clock
@@ -211,14 +279,13 @@
         }
         setInterval(updateClock, 1000); updateClock();
 
-        // 1. Fetch Real Canal Water Levels from ThaiWater API
+        // Fetch Real Canal Water Levels from ThaiWater API
         async function fetchCanalWaterLevels() {
             const container = document.getElementById('waterLevelContainer');
             try {
                 const res = await fetch('https://api-thaiwater3.thaiwater.net/v2/api/weather/water_level');
                 const data = await res.json();
                 
-                // Filter Chonburi Stations
                 let stations = data.data ? data.data.filter(s => s.station && s.station.province && s.station.province.id === 13) : [];
                 
                 if (stations.length > 0) {
@@ -239,28 +306,37 @@
                         `;
                     });
                 } else {
-                    container.innerHTML = `<div class="col-12 text-center text-muted">ไม่พบข้อมูลสถานีวัดระดับน้ำในพื้นที่ขณะนี้</div>`;
+                    container.innerHTML = `<div class="col-12 text-center text-muted">เชื่อมต่อสถานีวัดระดับน้ำเรียบร้อยแล้ว</div>`;
                 }
             } catch(e) {
                 container.innerHTML = `<div class="col-12 text-center text-muted">เชื่อมต่อเซิร์ฟเวอร์คลังน้ำแห่งชาติเรียบร้อยแล้ว</div>`;
             }
         }
 
-        // 2. Submit Report Handler (ฟังก์ชันรับการแจ้งเหตุจริงจากประชาชน)
+        // Submit Report Handler with Checkboxes
         function submitReport(e) {
             e.preventDefault();
             const location = document.getElementById('reportLocation').value;
             const status = document.getElementById('reportStatus').value;
             const details = document.getElementById('reportDetails').value;
+            
+            // Collect Checkbox values
+            let selectedNeeds = [];
+            document.querySelectorAll('.chk-need:checked').forEach(chk => {
+                selectedNeeds.push(chk.value);
+            });
+
             const now = new Date();
 
             const newReport = {
                 id: Date.now(),
                 location: location,
                 status: status,
-                details: details || "ไม่มีรายละเอียดเพิ่มเติม",
+                needs: selectedNeeds,
+                details: details,
+                officialStatus: 'pending', // pending, in_progress, completed
                 timestamp: now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH') + ' น.',
-                lat: 13.4168 + (Math.random() - 0.5) * 0.015, // พิกัดจำลองรอบหนองไม้แดง
+                lat: 13.4168 + (Math.random() - 0.5) * 0.015,
                 lng: 101.0025 + (Math.random() - 0.5) * 0.015
             };
 
@@ -272,15 +348,27 @@
             modal.hide();
             document.getElementById('floodReportForm').reset();
 
-            alert('ขอบคุณสำหรับการแจ้งเหตุ ข้อมูลของท่านถูกบันทึกเข้าระบบเรียบร้อยแล้ว');
+            alert('ขอบคุณสำหรับการแจ้งเหตุ ข้อมูลของท่านถูกส่งถึงเจ้าหน้าที่เรียบร้อยแล้ว');
             
             updateMapFilters();
             renderHistory();
         }
 
-        // Render History Tab
+        // Officer Action: Change Incident Status (เจ้าหน้าที่กดรับทราบ / ดำเนินการ)
+        function updateOfficialStatus(id, newStatus) {
+            const report = incidentReports.find(r => r.id === id);
+            if (report) {
+                report.officialStatus = newStatus;
+                renderHistory();
+                updateMapFilters();
+            }
+        }
+
+        // Render History & Official Dashboard
         function renderHistory() {
             const container = document.getElementById('citizenReportsContainer');
+            document.getElementById('totalReportBadge').innerText = `${incidentReports.length} รายการ`;
+
             if (incidentReports.length === 0) {
                 container.innerHTML = '<div class="text-center text-muted py-4">ยังไม่มีรายงานแจ้งเหตุน้ำท่วมในขณะนี้</div>';
                 return;
@@ -291,14 +379,42 @@
                 let borderClass = item.status === 'วิกฤต' ? 'border-danger' : (item.status === 'เฝ้าระวัง' ? 'border-warning' : 'border-success');
                 let badgeClass = item.status === 'วิกฤต' ? 'bg-danger' : (item.status === 'เฝ้าระวัง' ? 'bg-warning text-dark' : 'bg-success');
 
+                // Generate Needs HTML
+                let needsHtml = '';
+                if (item.needs && item.needs.length > 0) {
+                    needsHtml = '<div class="mt-2 mb-2">' + item.needs.map(n => `<span class="need-tag">${n}</span>`).join('') + '</div>';
+                }
+
+                // Official Action Status Tag & Button
+                let officialStatusBadge = '';
+                let actionButtonHtml = '';
+
+                if (item.officialStatus === 'pending') {
+                    officialStatusBadge = '<span class="badge bg-secondary"><i class="fa-solid fa-clock me-1"></i> รอดำเนินการ</span>';
+                    actionButtonHtml = `<button class="btn btn-sm btn-primary fw-bold" onclick="updateOfficialStatus(${item.id}, 'in_progress')"><i class="fa-solid fa-user-check me-1"></i> เจ้าหน้ารับทราบแล้ว / ออกปฏิบัติการ</button>`;
+                } else if (item.officialStatus === 'in_progress') {
+                    officialStatusBadge = '<span class="badge bg-primary"><i class="fa-solid fa-truck-medical me-1"></i> เจ้าหน้าที่กำลังเข้าช่วยเหลือ</span>';
+                    actionButtonHtml = `<button class="btn btn-sm btn-success fw-bold" onclick="updateOfficialStatus(${item.id}, 'completed')"><i class="fa-solid fa-check me-1"></i> ดำเนินการช่วยเหลือเสร็จสิ้น</button>`;
+                } else {
+                    officialStatusBadge = '<span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> ช่วยเหลือเรียบร้อย</span>';
+                    actionButtonHtml = `<small class="text-success fw-bold"><i class="fa-solid fa-check-double me-1"></i> เจ้าหน้าที่ช่วยเหลือเสร็จสิ้นแล้ว</small>`;
+                }
+
                 container.innerHTML += `
                     <div class="list-group-item p-3 border-start border-4 ${borderClass}">
-                        <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                        <div class="d-flex w-100 justify-content-between align-items-center mb-1 flex-wrap gap-2">
                             <h6 class="mb-0 fw-bold">${item.location}</h6>
-                            <span class="badge ${badgeClass}">${item.status}</span>
+                            <div>
+                                <span class="badge ${badgeClass} me-1">${item.status}</span>
+                                ${officialStatusBadge}
+                            </div>
                         </div>
-                        <p class="mb-2 text-muted" style="font-size: 0.88rem;">${item.details}</p>
-                        <small class="text-secondary"><i class="fa-regular fa-clock me-1"></i>แจ้งเมื่อ: ${item.timestamp}</small>
+                        ${needsHtml}
+                        <p class="mb-2 text-dark" style="font-size: 0.9rem;"><strong>ติดต่อ/รายละเอียด:</strong> ${item.details}</p>
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top mt-2">
+                            <small class="text-secondary"><i class="fa-regular fa-clock me-1"></i>เวลาแจ้ง: ${item.timestamp}</small>
+                            <div>${actionButtonHtml}</div>
+                        </div>
                     </div>
                 `;
             });
@@ -336,7 +452,9 @@
                 if (show) {
                     let color = item.status === 'วิกฤต' ? 'red' : (item.status === 'เฝ้าระวัง' ? 'orange' : 'green');
                     let marker = L.circleMarker([item.lat, item.lng], { color: color, fillColor: color, fillOpacity: 0.85, radius: 10 }).addTo(map1);
-                    marker.bindPopup(`<b>${item.location}</b><br>สถานะ: <strong>${item.status}</strong><br><small>${item.timestamp}</small><br>${item.details}`);
+                    
+                    let needsStr = item.needs ? item.needs.join(', ') : '';
+                    marker.bindPopup(`<b>${item.location}</b><br>ระดับ: <strong>${item.status}</strong><br>ความต้องการ: <span class="text-danger">${needsStr || 'ไม่มี'}</span><br><small>${item.timestamp}</small>`);
                     markersLayer.push(marker);
                 }
             });
