@@ -22,13 +22,13 @@
         .nav-pills .nav-link.active { background-color: #0284c7; color: white; }
         
         .custom-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08); padding: 20px; margin-bottom: 20px; }
-        .map-frame { height: 450px; width: 100%; border-radius: 12px; background-color: #e2e8f0; }
+        .map-frame { height: 500px; width: 100%; border-radius: 12px; background-color: #e2e8f0; }
 
         .filter-box { background: #f1f5f9; border-radius: 10px; padding: 8px 14px; cursor: pointer; border: 1px solid #cbd5e1; font-weight: 500; }
         .footer-sticky { position: sticky; bottom: 0; z-index: 1000; background: #ffffff; border-top: 2px solid #e2e8f0; padding: 10px 0; }
         
-        /* Layout กล้อง CCTV แบบไม่มีแผนที่บน */
-        .cctv-video-container { position: relative; width: 100%; height: 600px; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; background: #000; }
+        /* Layout กล้อง CCTV */
+        .cctv-video-container { position: relative; width: 100%; height: 550px; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; background: #000; }
         .cctv-iframe { width: 100%; height: 100%; border: 0; }
 
         .cam-btn { border-radius: 8px; font-weight: 500; font-size: 0.88rem; padding: 8px 14px; transition: all 0.2s; }
@@ -41,6 +41,9 @@
         .img-preview-box { max-height: 180px; border-radius: 8px; border: 1px solid #cbd5e1; object-fit: cover; display: none; }
         .report-img-thumb { width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s; }
         .report-img-thumb:hover { transform: scale(1.02); }
+
+        /* Style ปรับปรุงปุ่มสวิตช์สลับเรดาร์ฝน/ลม */
+        .radar-switch-btn { font-size: 0.85rem; font-weight: 600; padding: 6px 14px; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -90,7 +93,7 @@
                             <i class="fa-solid fa-map-location-dot me-2"></i> 2. แผนที่จุดแจ้งเหตุ & จุดเสี่ยง
                         </button>
                         <button class="nav-link" id="btn-tab3" data-bs-toggle="pill" data-bs-target="#tab-map2" onclick="initMap2()">
-                            <i class="fa-solid fa-cloud-showers-heavy me-2 text-info"></i> 3. เรดาร์ตรวจจับกลุ่มฝนสด
+                            <i class="fa-solid fa-cloud-showers-water me-2 text-info"></i> 3. เรดาร์ตรวจจับพายุ/ฝน/ลม (รายอำเภอ)
                         </button>
                         <button class="nav-link" id="btn-tab4" data-bs-toggle="pill" data-bs-target="#tab-history" onclick="renderHistory()">
                             <i class="fa-solid fa-list-check me-2 text-primary"></i> 4. รายการแจ้งเหตุ (เจ้าหน้าที่รับเรื่อง)
@@ -103,7 +106,7 @@
             <div class="col-lg-9 col-md-8">
                 <div class="tab-content">
                     
-                    <!-- TAB 1: CCTV Stream เฉพาะระบบกล้อง (เอาแผนที่บนออกแล้ว) -->
+                    <!-- TAB 1: CCTV Stream -->
                     <div class="tab-pane fade show active" id="tab-cctv">
                         <div class="custom-card">
                             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -156,16 +159,31 @@
                         </div>
                     </div>
 
-                    <!-- TAB 3: Rain Radar Only -->
+                    <!-- TAB 3: Upgraded Multi-Layer Rain/Wind/Storm Radar (Zoomable down to District) -->
                     <div class="tab-pane fade" id="tab-map2">
                         <div class="custom-card">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                                 <div>
-                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-radar text-info me-2"></i>เรดาร์ตรวจจับกลุ่มฝนสด (RainViewer Tile API)</h5>
-                                    <small class="text-muted">แสดงการเคลื่อนที่ของกลุ่มฝนในเขตอำเภอเมืองชลบุรีและจังหวัดใกล้เคียง</small>
+                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-cloud-bolt text-info me-2"></i>เรดาร์พายุ ฝน ลม สด (ซูมลึกระดับอำเภอ/ตำบล)</h5>
+                                    <small class="text-muted">ซูมเข้า-ออกดูความแรงของฝนและทิศทางลมในแต่ละอำเภอได้แบบเรียลไทม์</small>
+                                </div>
+                                <div class="btn-group">
+                                    <button id="btnRadarModeMap" class="btn btn-info text-white radar-switch-btn active" onclick="switchRadarMode('rain')"><i class="fa-solid fa-umbrella me-1"></i> เรดาร์ฝนสด HD</button>
+                                    <button id="btnRadarModeWindy" class="btn btn-outline-info radar-switch-btn" onclick="switchRadarMode('wind')"><i class="fa-solid fa-wind me-1"></i> เรดาร์พายุ & ทิศทางลม (Windy)</button>
                                 </div>
                             </div>
-                            <div id="map2" class="map-frame"></div>
+
+                            <!-- กล่องแสดงแผนที่เรดาร์ฝนแบบ Leaflet (ซูมลึกไม่หลุด Not Supported) -->
+                            <div id="map2Container" style="position: relative;">
+                                <div id="map2" class="map-frame"></div>
+                            </div>
+
+                            <!-- กล่อง iframe Windy สำหรับสลับดูพายุและทิศทางลม -->
+                            <div id="windyFrameContainer" class="d-none">
+                                <div class="map-frame overflow-hidden">
+                                    <iframe id="windyIframe" style="width: 100%; height: 100%; border:0;" src="https://embed.windy.com/embed2.html?lat=13.4168&lon=101.0025&detailLat=13.4168&detailLon=101.0025&width=100%25&height=500&zoom=10&level=surface&overlay=rain&product=ecmwf&menu=&message=true&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"></iframe>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -477,9 +495,7 @@
             });
         }
 
-        // -------------------------------------------------------------
         // CCTV DYNAMIC VIDEO SWITCHING
-        // -------------------------------------------------------------
         const cameraData = [
             { id: 1, name: '1. สี่แยกไฟแดงดอนหัวฬ่อ (ขาเข้า)', streamUrl: 'https://cctv.dhr.go.th/?cam=1' },
             { id: 2, name: '2. สี่แยกไฟแดงดอนหัวฬ่อ (ขาออก)', streamUrl: 'https://cctv.dhr.go.th/?cam=2' },
@@ -491,7 +507,6 @@
             const iframe = document.getElementById('cctvIframe');
             const camTitle = document.getElementById('currentCamName');
 
-            // รีเซ็ตสถานะปุ่มกด
             document.querySelectorAll('.cam-btn').forEach(btn => btn.classList.remove('active'));
 
             if (camId === 0) {
@@ -552,22 +567,62 @@
             });
         }
 
+        // Map 2: Upgraded Radar & Wind Map Supporting Deep Zoom
         function initMap2() {
             setTimeout(async () => {
                 if (!map2) {
-                    map2 = L.map('map2').setView([13.4168, 101.0025], 10);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map2);
+                    // กำหนดขอบเขตการซูม maxZoom เป็น 15 เพื่อรองรับการดูรายอำเภอ/ตำบล
+                    map2 = L.map('map2', { maxZoom: 15 }).setView([13.4168, 101.0025], 11);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 18,
+                        attribution: '© OpenStreetMap'
+                    }).addTo(map2);
+
                     try {
                         const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
                         const data = await res.json();
                         if (data.radar && data.radar.past && data.radar.past.length > 0) {
                             const latestPath = data.radar.past[data.radar.past.length - 1].path;
-                            L.tileLayer(`https://tilecache.rainviewer.com${latestPath}/256/{z}/{x}/{y}/2/1_1.png`, { opacity: 0.65 }).addTo(map2);
+                            // ใช้ tileSize 512 + maxNativeZoom เพื่อหลีกเลี่ยงข้อผิดพลาด Zoom Level Not Supported
+                            L.tileLayer(`https://tilecache.rainviewer.com${latestPath}/512/{z}/{x}/{y}/2/1_1.png`, {
+                                opacity: 0.65,
+                                tileSize: 512,
+                                zoomOffset: -1,
+                                maxNativeZoom: 12,
+                                maxZoom: 18
+                            }).addTo(map2);
                         }
                     } catch(e) {}
                 }
                 map2.invalidateSize();
             }, 200);
+        }
+
+        // สลับโหมดเรดาร์ฝน และ เรดาร์ลม/พายุ Windy
+        function switchRadarMode(mode) {
+            const btnRain = document.getElementById('btnRadarModeMap');
+            const btnWind = document.getElementById('btnRadarModeWindy');
+            const mapContainer = document.getElementById('map2Container');
+            const windyContainer = document.getElementById('windyFrameContainer');
+
+            if (mode === 'rain') {
+                btnRain.classList.add('btn-info', 'text-white', 'active');
+                btnRain.classList.remove('btn-outline-info');
+                btnWind.classList.remove('btn-info', 'text-white', 'active');
+                btnWind.classList.add('btn-outline-info');
+
+                mapContainer.classList.remove('d-none');
+                windyContainer.classList.add('d-none');
+                if (map2) map2.invalidateSize();
+            } else {
+                btnWind.classList.add('btn-info', 'text-white', 'active');
+                btnWind.classList.remove('btn-outline-info');
+                btnRain.classList.remove('btn-info', 'text-white', 'active');
+                btnRain.classList.add('btn-outline-info');
+
+                mapContainer.classList.add('d-none');
+                windyContainer.classList.remove('d-none');
+            }
         }
 
         window.onload = function() {
