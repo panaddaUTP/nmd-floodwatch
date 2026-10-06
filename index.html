@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
     <title>NMD FloodWatch - ระบบเฝ้าระวังน้ำท่วม เทศบาลตำบลหนองไม้แดง</title>
     
     <!-- Fonts & Frameworks -->
@@ -13,6 +13,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
+    <!-- Firebase SDKs (v8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; color: #334155; }
         .header-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; }
@@ -22,12 +26,12 @@
         .nav-pills .nav-link.active { background-color: #0284c7; color: white; }
         
         .custom-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08); padding: 20px; margin-bottom: 20px; }
-        .map-frame { height: 550px; width: 100%; border-radius: 12px; background-color: #e2e8f0; overflow: hidden; }
+        .map-frame { height: 550px; width: 100%; border-radius: 12px; background-color: #e2e8f0; overflow: hidden; position: relative; }
+        .picker-map-frame { height: 260px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 8px; }
 
         .filter-box { background: #f1f5f9; border-radius: 10px; padding: 8px 14px; cursor: pointer; border: 1px solid #cbd5e1; font-weight: 500; }
         .footer-sticky { position: sticky; bottom: 0; z-index: 1000; background: #ffffff; border-top: 2px solid #e2e8f0; padding: 10px 0; }
         
-        /* Layout กล้อง CCTV */
         .cctv-video-container { position: relative; width: 100%; height: 550px; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; background: #000; }
         .cctv-iframe { width: 100%; height: 100%; border: 0; }
 
@@ -43,6 +47,42 @@
         .report-img-thumb:hover { transform: scale(1.02); }
 
         .radar-switch-btn { font-size: 0.85rem; font-weight: 600; padding: 6px 14px; border-radius: 8px; }
+
+        .official-radar-box {
+            width: 100%;
+            height: 100%;
+            background-color: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .official-radar-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .radar-status-bar {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(4px);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            z-index: 10;
+        }
+
+        .touch-enabled-iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            pointer-events: auto !important;
+        }
     </style>
 </head>
 <body>
@@ -59,540 +99,4 @@
             </div>
             
             <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-danger fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
-                    <i class="fa-solid fa-triangle-exclamation me-1"></i> แจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ
-                </button>
-                <div class="badge-live-info text-white d-none d-md-block">
-                    <i class="fa-regular fa-clock me-1 text-warning"></i><span id="liveClockText">--:--:--</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="container-fluid px-4">
-        
-        <!-- ThaiWater Real-Time Canal Water Level -->
-        <div class="custom-card mb-3 py-3">
-            <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-water me-2"></i>ระดับน้ำในพื้นที่/คลองสำคัญ (ข้อมูลจริง คลังน้ำแห่งชาติ ThaiWater)</h6>
-            <div class="row g-3" id="waterLevelContainer">
-                <div class="col-12 text-center text-muted py-2"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังเชื่อมต่อสถานีวัดระดับน้ำจริง...</div>
-            </div>
-        </div>
-
-        <div class="row g-3">
-            <!-- Sidebar Navigation -->
-            <div class="col-lg-3 col-md-4">
-                <div class="custom-card p-3">
-                    <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.8rem;">เมนูบริการ</h6>
-                    <div class="nav flex-column nav-pills" role="tablist">
-                        <button class="nav-link active" id="btn-tab1" data-bs-toggle="pill" data-bs-target="#tab-cctv">
-                            <i class="fa-solid fa-video me-2 text-danger"></i> 1. กล้อง CCTV จราจรและจุดเฝ้าระวัง
-                        </button>
-                        <button class="nav-link" id="btn-tab2" data-bs-toggle="pill" data-bs-target="#tab-map1" onclick="initMap1()">
-                            <i class="fa-solid fa-map-location-dot me-2"></i> 2. แผนที่จุดแจ้งเหตุ & จุดเสี่ยง
-                        </button>
-                        <button class="nav-link" id="btn-tab3" data-bs-toggle="pill" data-bs-target="#tab-map2">
-                            <i class="fa-solid fa-cloud-showers-water me-2 text-info"></i> 3. เรดาร์ตรวจจับพายุ/ฝน/ลม (รายอำเภอ)
-                        </button>
-                        <button class="nav-link" id="btn-tab4" data-bs-toggle="pill" data-bs-target="#tab-history" onclick="renderHistory()">
-                            <i class="fa-solid fa-list-check me-2 text-primary"></i> 4. รายการแจ้งเหตุ (เจ้าหน้าที่รับเรื่อง)
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Content Area -->
-            <div class="col-lg-9 col-md-8">
-                <div class="tab-content">
-                    
-                    <!-- TAB 1: CCTV Stream -->
-                    <div class="tab-pane fade show active" id="tab-cctv">
-                        <div class="custom-card">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <div>
-                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-video text-danger me-2"></i>ระบบถ่ายทอดสดกล้อง CCTV จราจรเฝ้าระวังน้ำท่วม</h5>
-                                    <small class="text-muted">เลือกจุดกล้องที่ต้องการรับชมสัญญาณสดได้จากเมนูด้านล่าง</small>
-                                </div>
-                                <a href="https://cctv.dhr.go.th/" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fa-solid fa-up-right-from-square me-1"></i> เปิดเว็บเต็มระบบ cctv.dhr.go.th
-                                </a>
-                            </div>
-
-                            <!-- ปุ่มทางลัดเลือกกล้องดูง่าย -->
-                            <div class="mb-3">
-                                <small class="fw-bold text-secondary d-block mb-2"><i class="fa-solid fa-hand-pointer me-1 text-primary"></i> เลือกมุมมอง / ตำแหน่งกล้อง:</small>
-                                <div class="d-flex flex-wrap gap-2">
-                                    <button id="cam-btn-0" class="btn btn-outline-secondary cam-btn active" onclick="selectCamera(0)"><i class="fa-solid fa-table-cells-large me-1"></i> แสดงผลทุกกล้อง (ระบบรวม)</button>
-                                    <button id="cam-btn-1" class="btn btn-outline-primary cam-btn" onclick="selectCamera(1)"><i class="fa-solid fa-camera me-1"></i> 1. สี่แยกดอนหัวฬ่อ (ขาเข้า)</button>
-                                    <button id="cam-btn-2" class="btn btn-outline-primary cam-btn" onclick="selectCamera(2)"><i class="fa-solid fa-camera me-1"></i> 2. สี่แยกดอนหัวฬ่อ (ขาออก)</button>
-                                    <button id="cam-btn-3" class="btn btn-outline-primary cam-btn" onclick="selectCamera(3)"><i class="fa-solid fa-camera me-1"></i> 3. หน้าสถานีดับเพลิงดอนหัวฬ่อ</button>
-                                    <button id="cam-btn-4" class="btn btn-outline-primary cam-btn" onclick="selectCamera(4)"><i class="fa-solid fa-camera me-1"></i> 4. ถนนสัตตพงษ์ - ดอนหัวฬ่อ</button>
-                                </div>
-                            </div>
-
-                            <!-- จอแสดงผลสัญญาณวิดีโอสด -->
-                            <div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <small class="fw-bold text-danger"><i class="fa-solid fa-circle-play me-1"></i> จอแสดงผลภาพสด: <span id="currentCamName" class="text-dark">ระบบรวมทุกกล้องสด</span></small>
-                                    <span class="badge bg-danger">LIVE</span>
-                                </div>
-                                <div class="cctv-video-container">
-                                    <iframe id="cctvIframe" src="https://cctv.dhr.go.th/" class="cctv-iframe" title="CCTV Live Feed"></iframe>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAB 2: Map & Active Incident Reports -->
-                    <div class="tab-pane fade" id="tab-map1">
-                        <div class="custom-card">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
-                                <h6 class="fw-bold mb-0"><i class="fa-solid fa-filter me-1 text-primary"></i> กรองสถานะเหตุการณ์:</h6>
-                                <div class="d-flex flex-wrap gap-2">
-                                    <label class="filter-box"><input type="checkbox" id="chkNormal" checked onchange="updateMapFilters()"> 🟢 ปกติ</label>
-                                    <label class="filter-box"><input type="checkbox" id="chkWarning" checked onchange="updateMapFilters()"> 🟡 เฝ้าระวัง</label>
-                                    <label class="filter-box"><input type="checkbox" id="chkCritical" checked onchange="updateMapFilters()"> 🔴 วิกฤต</label>
-                                </div>
-                            </div>
-                            <div id="map1" class="map-frame"></div>
-                        </div>
-                    </div>
-
-                    <!-- TAB 3: Embedded Weather Radar System (No Zoom Error) -->
-                    <div class="tab-pane fade" id="tab-map2">
-                        <div class="custom-card">
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                                <div>
-                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-cloud-bolt text-info me-2"></i>เรดาร์พายุ ฝน ลม สด (ซูมลึกรายอำเภอ/ตำบล)</h5>
-                                    <small class="text-muted">ซูมเข้า-ออกดูทิศทางพายุ ฝน และลม แบบไม่มีข้อจำกัด</small>
-                                </div>
-                                <div class="btn-group">
-                                    <button id="btnRadarModeRain" class="btn btn-info text-white radar-switch-btn active" onclick="switchRadarMode('rain')"><i class="fa-solid fa-umbrella me-1"></i> เรดาร์เคลื่อนตัวกลุ่มฝน</button>
-                                    <button id="btnRadarModeWind" class="btn btn-outline-info radar-switch-btn" onclick="switchRadarMode('wind')"><i class="fa-solid fa-wind me-1"></i> เรดาร์พายุ & ทิศทางลม (Windy)</button>
-                                </div>
-                            </div>
-
-                            <!-- จอเรดาร์ฝนสด RainViewer Official Embed Player (ซูมลึกไม่ติด Error) -->
-                            <div id="rainViewerContainer" class="map-frame">
-                                <iframe src="https://www.rainviewer.com/map.html?loc=13.4168,101.0025,11&o2=1&c=3&o=83&v=1&run=1&sl=1&sm=1&sn=1" style="width: 100%; height: 100%; border: 0;" title="RainViewer Map"></iframe>
-                            </div>
-
-                            <!-- จอเรดาร์พายุ/กระแสลม Windy Embed Player -->
-                            <div id="windyContainer" class="map-frame d-none">
-                                <iframe src="https://embed.windy.com/embed2.html?lat=13.4168&lon=101.0025&detailLat=13.4168&detailLon=101.0025&width=100%25&height=550&zoom=11&level=surface&overlay=rain&product=ecmwf&menu=&message=true&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1" style="width: 100%; height: 100%; border:0;" title="Windy Radar Map"></iframe>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAB 4: Citizens Incident History List -->
-                    <div class="tab-pane fade" id="tab-history">
-                        <div class="custom-card">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="fw-bold mb-0"><i class="fa-solid fa-list-check me-2 text-primary"></i>รายการรับแจ้งเหตุจากประชาชน (ระบบเจ้าหน้าที่)</h5>
-                                <span class="badge bg-secondary" id="totalReportBadge">0 รายการ</span>
-                            </div>
-                            <div id="citizenReportsContainer" class="list-group list-group-flush border rounded-3">
-                                <div class="text-center text-muted py-4">ยังไม่มีรายงานแจ้งเหตุน้ำท่วมในขณะนี้</div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal ฟอร์มแจ้งเหตุน้ำท่วมสำหรับประชาชน -->
-    <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>แบบฟอร์มแจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="floodReportForm" onsubmit="submitReport(event)">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">1. ระบุสถานที่ / จุดที่เกิดน้ำท่วม <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="reportLocation" placeholder="เช่น ซอยวิบูลธรรมรักษ์ 5, หน้าวัดอู่ตะเภา" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">2. ระดับความรุนแรง / ความสูงของน้ำ <span class="text-danger">*</span></label>
-                            <select class="form-select" id="reportStatus" required>
-                                <option value="เฝ้าระวัง">🟡 เฝ้าระวัง (น้ำรอการระบาย 5-15 ซม.)</option>
-                                <option value="วิกฤต">🔴 วิกฤต (น้ำท่วมขังสูง 20 ซม. ขึ้นไป รถเล็กผ่านลำบาก)</option>
-                                <option value="ปกติ">🟢 ปกติ (น้ำแห้งแล้ว)</option>
-                            </select>
-                        </div>
-
-                        <!-- ติ๊กเลือกความช่วยเหลือ -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-danger"><i class="fa-solid fa-hand-holding-hand me-1"></i> 3. ความต้องการความช่วยเหลือด่วน (ถ้ามี)</label>
-                            <div class="row g-2">
-                                <div class="col-md-6">
-                                    <div class="chk-box-card">
-                                        <div class="form-check">
-                                            <input class="form-check-input chk-need" type="checkbox" value="🚨 ต้องการอพยพด่วน" id="need1">
-                                            <label class="form-check-label fw-bold text-danger" for="need1">🚨 ต้องการอพยพด่วน</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="chk-box-card">
-                                        <div class="form-check">
-                                            <input class="form-check-input chk-need" type="checkbox" value="🛏️ มีผู้ป่วยติดเตียง / ผู้สูงอายุ" id="need2">
-                                            <label class="form-check-label fw-bold" for="need2">🛏️ มีผู้ป่วยติดเตียง / ผู้สูงอายุ</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="chk-box-card">
-                                        <div class="form-check">
-                                            <input class="form-check-input chk-need" type="checkbox" value="🍱 ต้องการอาหาร / น้ำดื่ม" id="need3">
-                                            <label class="form-check-label fw-bold" for="need3">🍱 ต้องการอาหาร / น้ำดื่ม</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="chk-box-card">
-                                        <div class="form-check">
-                                            <input class="form-check-input chk-need" type="checkbox" value="💊 ต้องการยา / เวชภัณฑ์" id="need4">
-                                            <label class="form-check-label fw-bold" for="need4">💊 ต้องการยา / เวชภัณฑ์</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ช่องแนบรูปภาพถ่ายน้ำท่วม -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold"><i class="fa-solid fa-camera me-1 text-primary"></i> 4. แนบรูปถ่ายสถานการณ์น้ำท่วม (ถ้ามี - ไม่แนบก็ได้)</label>
-                            <input type="file" class="form-control" id="reportImage" accept="image/*" onchange="previewUploadImage(event)">
-                            <div class="mt-2 text-center">
-                                <img id="imagePreview" src="" alt="Image Preview" class="img-preview-box">
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">5. รายละเอียดเพิ่มเติม / เบอร์โทรติดต่อ <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="reportDetails" rows="2" placeholder="ระบุเบอร์โทรศัพท์สำหรับให้เจ้าหน้าที่ติดต่อกลับ" required></textarea>
-                        </div>
-                        <div class="text-end">
-                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">ยกเลิก</button>
-                            <button type="submit" class="btn btn-danger fw-bold"><i class="fa-solid fa-paper-plane me-1"></i> ส่งข้อมูลแจ้งเหตุ</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal ขยายรูปภาพขนาดใหญ่ -->
-    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content bg-dark">
-                <div class="modal-header border-0">
-                    <h6 class="modal-title text-white"><i class="fa-regular fa-image me-1"></i> รูปถ่ายสถานที่แจ้งเหตุ</h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-center p-0 pb-3">
-                    <img id="modalFullImage" src="" class="img-fluid rounded" style="max-height: 80vh;" alt="Full Image">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer Emergency Contacts -->
-    <div class="footer-sticky mt-4">
-        <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div><small class="fw-bold text-muted">ศูนย์ ปภ. เทศบาลตำบลหนองไม้แดง</small></div>
-            <div class="d-flex gap-2">
-                <a href="tel:1669" class="btn btn-sm btn-danger"><i class="fa-solid fa-phone me-1"></i>1669 กู้ชีพ</a>
-                <a href="tel:038215605" class="btn btn-sm btn-warning text-dark"><i class="fa-solid fa-phone me-1"></i>038-215605 ปภ.หนองไม้แดง</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <script>
-        let incidentReports = [];
-        let uploadedBase64Image = "";
-
-        // Real-Time Clock
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('liveClockText').innerText = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH') + ' น.';
-        }
-        setInterval(updateClock, 1000); updateClock();
-
-        function previewUploadImage(event) {
-            const file = event.target.files[0];
-            const preview = document.getElementById('imagePreview');
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    uploadedBase64Image = e.target.result;
-                    preview.src = uploadedBase64Image;
-                    preview.style.display = 'inline-block';
-                }
-                reader.readAsDataURL(file);
-            } else {
-                uploadedBase64Image = "";
-                preview.src = "";
-                preview.style.display = 'none';
-            }
-        }
-
-        function showFullImage(src) {
-            document.getElementById('modalFullImage').src = src;
-            const imgModal = new bootstrap.Modal(document.getElementById('imageModal'));
-            imgModal.show();
-        }
-
-        async function fetchCanalWaterLevels() {
-            const container = document.getElementById('waterLevelContainer');
-            try {
-                const res = await fetch('https://api-thaiwater3.thaiwater.net/v2/api/weather/water_level');
-                const data = await res.json();
-                let stations = data.data ? data.data.filter(s => s.station && s.station.province && s.station.province.id === 13) : [];
-                
-                if (stations.length > 0) {
-                    container.innerHTML = '';
-                    stations.slice(0, 3).forEach(st => {
-                        let stName = st.station.tele_station_name.th;
-                        let val = st.water_level || 50;
-                        let color = val > 80 ? 'bg-danger' : (val > 60 ? 'bg-warning' : 'bg-success');
-                        
-                        container.innerHTML += `
-                            <div class="col-md-4">
-                                <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.85rem;">
-                                    <span class="fw-bold"><i class="fa-solid fa-water me-1 text-primary"></i> ${stName}</span>
-                                    <span class="fw-bold text-secondary">${val}%</span>
-                                </div>
-                                <div class="progress" style="height: 10px; border-radius:10px;"><div class="progress-bar ${color}" style="width: ${val}%;"></div></div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    container.innerHTML = `<div class="col-12 text-center text-muted">เชื่อมต่อสถานีวัดระดับน้ำเรียบร้อยแล้ว</div>`;
-                }
-            } catch(e) {
-                container.innerHTML = `<div class="col-12 text-center text-muted">เชื่อมต่อเซิร์ฟเวอร์คลังน้ำแห่งชาติเรียบร้อยแล้ว</div>`;
-            }
-        }
-
-        function submitReport(e) {
-            e.preventDefault();
-            const location = document.getElementById('reportLocation').value;
-            const status = document.getElementById('reportStatus').value;
-            const details = document.getElementById('reportDetails').value;
-            
-            let selectedNeeds = [];
-            document.querySelectorAll('.chk-need:checked').forEach(chk => selectedNeeds.push(chk.value));
-
-            const now = new Date();
-
-            const newReport = {
-                id: Date.now(),
-                location: location,
-                status: status,
-                needs: selectedNeeds,
-                image: uploadedBase64Image,
-                details: details,
-                officialStatus: 'pending',
-                timestamp: now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH') + ' น.',
-                lat: 13.4168 + (Math.random() - 0.5) * 0.015,
-                lng: 101.0025 + (Math.random() - 0.5) * 0.015
-            };
-
-            incidentReports.unshift(newReport);
-
-            const modalEl = document.getElementById('reportModal');
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            modal.hide();
-            document.getElementById('floodReportForm').reset();
-            document.getElementById('imagePreview').style.display = 'none';
-            uploadedBase64Image = "";
-
-            alert('ขอบคุณสำหรับการแจ้งเหตุ ข้อมูลและรูปถ่ายถูกส่งถึงเจ้าหน้าที่เรียบร้อยแล้ว');
-            
-            updateMapFilters();
-            renderHistory();
-        }
-
-        function updateOfficialStatus(id, newStatus) {
-            const report = incidentReports.find(r => r.id === id);
-            if (report) {
-                report.officialStatus = newStatus;
-                renderHistory();
-                updateMapFilters();
-            }
-        }
-
-        function renderHistory() {
-            const container = document.getElementById('citizenReportsContainer');
-            document.getElementById('totalReportBadge').innerText = `${incidentReports.length} รายการ`;
-
-            if (incidentReports.length === 0) {
-                container.innerHTML = '<div class="text-center text-muted py-4">ยังไม่มีรายงานแจ้งเหตุน้ำท่วมในขณะนี้</div>';
-                return;
-            }
-
-            container.innerHTML = '';
-            incidentReports.forEach(item => {
-                let borderClass = item.status === 'วิกฤต' ? 'border-danger' : (item.status === 'เฝ้าระวัง' ? 'border-warning' : 'border-success');
-                let badgeClass = item.status === 'วิกฤต' ? 'bg-danger' : (item.status === 'เฝ้าระวัง' ? 'bg-warning text-dark' : 'bg-success');
-
-                let needsHtml = '';
-                if (item.needs && item.needs.length > 0) {
-                    needsHtml = '<div class="mt-1 mb-2">' + item.needs.map(n => `<span class="need-tag">${n}</span>`).join('') + '</div>';
-                }
-
-                let imageHtml = '';
-                if (item.image) {
-                    imageHtml = `<div class="mt-2 mb-2"><img src="${item.image}" class="report-img-thumb" onclick="showFullImage('${item.image}')" title="กดเพื่อขยายรูปภาพ"></div>`;
-                }
-
-                let officialStatusBadge = '';
-                let actionButtonHtml = '';
-
-                if (item.officialStatus === 'pending') {
-                    officialStatusBadge = '<span class="badge bg-secondary"><i class="fa-solid fa-clock me-1"></i> รอดำเนินการ</span>';
-                    actionButtonHtml = `<button class="btn btn-sm btn-primary fw-bold" onclick="updateOfficialStatus(${item.id}, 'in_progress')"><i class="fa-solid fa-user-check me-1"></i> เจ้าหน้ารับเรื่องแล้ว</button>`;
-                } else if (item.officialStatus === 'in_progress') {
-                    officialStatusBadge = '<span class="badge bg-primary"><i class="fa-solid fa-truck-medical me-1"></i> กำลังเข้าช่วยเหลือ</span>';
-                    actionButtonHtml = `<button class="btn btn-sm btn-success fw-bold" onclick="updateOfficialStatus(${item.id}, 'completed')"><i class="fa-solid fa-check me-1"></i> ช่วยเหลือเสร็จสิ้น</button>`;
-                } else {
-                    officialStatusBadge = '<span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> ช่วยเหลือเรียบร้อย</span>';
-                    actionButtonHtml = `<small class="text-success fw-bold"><i class="fa-solid fa-check-double me-1"></i> ช่วยเหลือเสร็จสิ้นแล้ว</small>`;
-                }
-
-                container.innerHTML += `
-                    <div class="list-group-item p-3 border-start border-4 ${borderClass}">
-                        <div class="d-flex w-100 justify-content-between align-items-center mb-1 flex-wrap gap-2">
-                            <h6 class="mb-0 fw-bold">${item.location}</h6>
-                            <div>
-                                <span class="badge ${badgeClass} me-1">${item.status}</span>
-                                ${officialStatusBadge}
-                            </div>
-                        </div>
-                        ${needsHtml}
-                        ${imageHtml}
-                        <p class="mb-2 text-dark" style="font-size: 0.9rem;"><strong>ติดต่อ/รายละเอียด:</strong> ${item.details}</p>
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top mt-2">
-                            <small class="text-secondary"><i class="fa-regular fa-clock me-1"></i>เวลาแจ้ง: ${item.timestamp}</small>
-                            <div>${actionButtonHtml}</div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        // CCTV DYNAMIC VIDEO SWITCHING
-        const cameraData = [
-            { id: 1, name: '1. สี่แยกไฟแดงดอนหัวฬ่อ (ขาเข้า)', streamUrl: 'https://cctv.dhr.go.th/?cam=1' },
-            { id: 2, name: '2. สี่แยกไฟแดงดอนหัวฬ่อ (ขาออก)', streamUrl: 'https://cctv.dhr.go.th/?cam=2' },
-            { id: 3, name: '3. หน้าสถานีดับเพลิงดอนหัวฬ่อ', streamUrl: 'https://cctv.dhr.go.th/?cam=3' },
-            { id: 4, name: '4. ถนนสัตตพงษ์ - ดอนหัวฬ่อ', streamUrl: 'https://cctv.dhr.go.th/?cam=4' }
-        ];
-
-        function selectCamera(camId) {
-            const iframe = document.getElementById('cctvIframe');
-            const camTitle = document.getElementById('currentCamName');
-
-            document.querySelectorAll('.cam-btn').forEach(btn => btn.classList.remove('active'));
-
-            if (camId === 0) {
-                camTitle.innerText = "ระบบรวมทุกกล้องสด (เทศบาลเมืองดอนหัวฬ่อ)";
-                iframe.src = "https://cctv.dhr.go.th/";
-                document.getElementById('cam-btn-0').classList.add('active');
-                return;
-            }
-
-            const targetCam = cameraData.find(c => c.id === camId);
-            if (targetCam) {
-                camTitle.innerText = targetCam.name;
-                iframe.src = targetCam.streamUrl;
-                const activeBtn = document.getElementById(`cam-btn-${camId}`);
-                if (activeBtn) activeBtn.classList.add('active');
-            }
-        }
-
-        // Map 1 Logic
-        let map1, markersLayer = [];
-
-        function initMap1() {
-            setTimeout(() => {
-                if (!map1) {
-                    map1 = L.map('map1').setView([13.4168, 101.0025], 14);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map1);
-                    updateMapFilters();
-                }
-                map1.invalidateSize();
-            }, 200);
-        }
-
-        function updateMapFilters() {
-            if (!map1) return;
-            markersLayer.forEach(m => map1.removeLayer(m));
-            markersLayer = [];
-
-            const showNormal = document.getElementById('chkNormal').checked;
-            const showWarning = document.getElementById('chkWarning').checked;
-            const showCritical = document.getElementById('chkCritical').checked;
-
-            incidentReports.forEach(item => {
-                let show = false;
-                if (item.status === 'ปกติ' && showNormal) show = true;
-                if (item.status === 'เฝ้าระวัง' && showWarning) show = true;
-                if (item.status === 'วิกฤต' && showCritical) show = true;
-
-                if (show) {
-                    let color = item.status === 'วิกฤต' ? 'red' : (item.status === 'เฝ้าระวัง' ? 'orange' : 'green');
-                    let marker = L.circleMarker([item.lat, item.lng], { color: color, fillColor: color, fillOpacity: 0.85, radius: 10 }).addTo(map1);
-                    
-                    let imgTag = item.image ? `<br><img src="${item.image}" style="width:100%; max-height:100px; object-fit:cover; border-radius:6px; margin-top:5px; cursor:pointer;" onclick="showFullImage('${item.image}')">` : '';
-                    let needsStr = item.needs ? item.needs.join(', ') : '';
-                    
-                    marker.bindPopup(`<b>${item.location}</b><br>ระดับ: <strong>${item.status}</strong><br>ความต้องการ: <span class="text-danger">${needsStr || 'ไม่มี'}</span>${imgTag}<br><small>${item.timestamp}</small>`);
-                    markersLayer.push(marker);
-                }
-            });
-        }
-
-        // สลับโหมดเรดาร์ฝน และ เรดาร์ลม/พายุ Windy
-        function switchRadarMode(mode) {
-            const btnRain = document.getElementById('btnRadarModeRain');
-            const btnWind = document.getElementById('btnRadarModeWind');
-            const rainBox = document.getElementById('rainViewerContainer');
-            const windBox = document.getElementById('windyContainer');
-
-            if (mode === 'rain') {
-                btnRain.classList.add('btn-info', 'text-white', 'active');
-                btnRain.classList.remove('btn-outline-info');
-                btnWind.classList.remove('btn-info', 'text-white', 'active');
-                btnWind.classList.add('btn-outline-info');
-
-                rainBox.classList.remove('d-none');
-                windBox.classList.add('d-none');
-            } else {
-                btnWind.classList.add('btn-info', 'text-white', 'active');
-                btnWind.classList.remove('btn-outline-info');
-                btnRain.classList.remove('btn-info', 'text-white', 'active');
-                btnRain.classList.add('btn-outline-info');
-
-                rainBox.classList.add('d-none');
-                windBox.classList.remove('d-none');
-            }
-        }
-
-        window.onload = function() {
-            fetchCanalWaterLevels();
-        };
-    </script>
-</body>
-</html>
+                <button class="btn btn-danger fw-bold shadow-sm" data-bs-toggle="modal" data-bs-
