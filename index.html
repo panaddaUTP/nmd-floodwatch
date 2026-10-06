@@ -27,9 +27,6 @@
         
         .cctv-video-container { position: relative; width: 100%; height: 500px; border-radius: 12px; overflow: hidden; background: #000; }
         .cctv-iframe { width: 100%; height: 100%; border: 0; }
-
-        .need-tag { display: inline-block; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; margin-right: 4px; }
-        .report-img-thumb { max-width: 150px; max-height: 100px; object-fit: cover; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -45,9 +42,20 @@
                 </div>
             </div>
             
-            <button class="btn btn-danger fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
-                <i class="fa-solid fa-triangle-exclamation me-1"></i> แจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ
-            </button>
+            <div class="d-flex align-items-center gap-2">
+                <!-- Sound Toggle & Test Button -->
+                <button class="btn btn-outline-light btn-sm fw-bold" onclick="playAlertSound()" title="ทดสอบเสียงเตือน">
+                    <i class="fa-solid fa-volume-high me-1"></i> ทดสอบเสียง
+                </button>
+                <div class="form-check form-switch text-white me-2">
+                    <input class="form-check-input" type="checkbox" id="soundToggle" checked>
+                    <label class="form-check-label small" for="soundToggle">เสียงเตือน</label>
+                </div>
+
+                <button class="btn btn-danger fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> แจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ
+                </button>
+            </div>
         </div>
     </div>
 
@@ -132,7 +140,7 @@
                         </div>
                     </div>
 
-                    <!-- TAB 3: Radar & Wind Map (Windy + RainViewer) -->
+                    <!-- TAB 3: Radar & Wind Map -->
                     <div class="tab-pane fade" id="tab-map2">
                         <div class="custom-card">
                             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -153,15 +161,15 @@
                         </div>
                     </div>
 
-                    <!-- TAB 4: History List -->
+                    <!-- TAB 4: History List & Officer Actions -->
                     <div class="tab-pane fade" id="tab-history">
                         <div class="custom-card">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="fw-bold mb-0"><i class="fa-solid fa-list-check me-2 text-primary"></i>รายการรับแจ้งเหตุจากประชาชน</h5>
-                                <span class="badge bg-primary" id="totalCountBadge">0 รายการ</span>
+                                <span class="badge bg-primary fs-6" id="totalCountBadge">0 รายการ</span>
                             </div>
                             <div id="reportsList" class="list-group list-group-flush border rounded-3">
-                                <!-- Data rendered by JS -->
+                                <!-- Rendered dynamically -->
                             </div>
                         </div>
                     </div>
@@ -182,30 +190,38 @@
                 <div class="modal-body">
                     <form onsubmit="submitNewReport(event)">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">ระบุสถานที่เกิดเหตุ</label>
-                            <select class="form-select mb-2" id="selLocation" onchange="onLocationSelectChange()">
-                                <option value="wat_sri">วัดศรีพโลทัย (ต.หนองไม้แดง)</option>
-                                <option value="wat_u">วัดอู่ตะเภา</option>
-                                <option value="tesaban">หน้าเทศบาลตำบลหนองไม้แดง</option>
-                                <option value="custom">-- พิมพ์ชื่อสถานที่อื่น ๆ --</option>
-                            </select>
-                            <input type="text" class="form-control" id="inputLocation" value="วัดศรีพโลทัย" required>
+                            <label class="form-label fw-bold">สถานที่เกิดเหตุ</label>
+                            <input type="text" class="form-control" id="inputLocation" placeholder="เช่น ถนนสุขุมวิท หน้าวัดอู่ตะเภา" required>
                         </div>
+                        
+                        <!-- GPS Fetching Section -->
+                        <div class="mb-3 p-3 bg-light rounded-3 border">
+                            <label class="form-label fw-bold text-primary mb-1"><i class="fa-solid fa-location-crosshairs me-1"></i>ตำแหน่ง GPS ปัจจุบัน</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="getGPSLocation()">
+                                    <i class="fa-solid fa-location-arrow me-1"></i> ดึงพิกัด GPS
+                                </button>
+                                <span id="gpsStatus" class="small text-muted">ยังไม่ได้ดึงพิกัด (จะใช้พิกัดกลางหนองไม้แดงเป็นค่าเริ่มต้น)</span>
+                            </div>
+                        </div>
+
                         <div class="mb-3">
-                            <label class="form-label fw-bold">ระดับน้ำ</label>
+                            <label class="form-label fw-bold">ระดับความรุนแรง</label>
                             <select class="form-select" id="inputStatus" required>
                                 <option value="เฝ้าระวัง">🟡 เฝ้าระวัง (น้ำขัง 5-15 ซม.)</option>
                                 <option value="วิกฤต">🔴 วิกฤต (น้ำขังสูง 20 ซม. ขึ้นไป)</option>
                                 <option value="ปกติ">🟢 ปกติ (น้ำแห้งแล้ว)</option>
                             </select>
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label fw-bold">รายละเอียดเพิ่มเติม / เบอร์ติดต่อ</label>
-                            <textarea class="form-control" id="inputDetails" rows="2" placeholder="ระบุรายละเอียดและเบอร์โทรศัพท์" required></textarea>
+                            <textarea class="form-control" id="inputDetails" rows="2" placeholder="ระบุรายละเอียดและเบอร์โทรศัพท์สำหรับติดต่อกลับ" required></textarea>
                         </div>
+
                         <div class="text-end">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <button type="submit" class="btn btn-danger fw-bold">ส่งข้อมูล</button>
+                            <button type="submit" class="btn btn-danger fw-bold">ส่งข้อมูลแจ้งเหตุ</button>
                         </div>
                     </form>
                 </div>
@@ -218,32 +234,72 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // Default Mock Data (รับประกันว่ามีข้อมูลขึ้นแน่นอน)
-        let defaultReports = [
-            { id: 101, location: "วัดศรีพโลทัย", status: "เฝ้าระวัง", details: "มีน้ำขังบริเวณลานวัดสูงประมาณ 10 ซม. โทร 081-XXX-XXXX", timestamp: "06/10/2569 14:30:00 น.", lat: 13.4078, lng: 100.9935 },
-            { id: 102, location: "วัดอู่ตะเภา", status: "วิกฤต", details: "น้ำท่วมขังทางเข้าวัด รถเล็กผ่านไม่ได้ โทร 089-XXX-XXXX", timestamp: "06/10/2569 15:10:00 น.", lat: 13.4114, lng: 101.0169 }
-        ];
-
-        const locationCoords = {
-            'wat_sri': { name: "วัดศรีพโลทัย", lat: 13.4078, lng: 100.9935 },
-            'wat_u': { name: "วัดอู่ตะเภา", lat: 13.4114, lng: 101.0169 },
-            'tesaban': { name: "หน้าเทศบาลตำบลหนองไม้แดง", lat: 13.4180, lng: 101.0080 }
-        };
-
+        let currentLat = 13.4114;
+        let currentLng = 101.0169;
         let map, markersGroup = [];
+        let previousReportCount = 0;
+
+        // Web Audio API for Alert Sound
+        function playAlertSound() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                const audioCtx = new AudioContext();
+
+                function makeTone(freq, start, duration) {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime + start);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + start + duration);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + start);
+                    osc.stop(audioCtx.currentTime + start + duration);
+                }
+
+                makeTone(880, 0, 0.15);   // Beep 1
+                makeTone(880, 0.2, 0.15); // Beep 2
+                makeTone(1174.66, 0.4, 0.3); // High Beep 3
+            } catch (e) {
+                console.log("Audio not supported or blocked");
+            }
+        }
 
         function getStoredReports() {
-            const saved = localStorage.getItem('nmd_reports_data');
-            return saved ? JSON.parse(saved) : defaultReports;
+            const saved = localStorage.getItem('nmd_real_reports');
+            return saved ? JSON.parse(saved) : [];
         }
 
         function saveReports(data) {
-            localStorage.setItem('nmd_reports_data', JSON.stringify(data));
+            localStorage.setItem('nmd_real_reports', JSON.stringify(data));
             renderReports();
             updateMapMarkers();
         }
 
-        // Initialize Map & Solve Grey Map Issue
+        function getGPSLocation() {
+            const statusText = document.getElementById('gpsStatus');
+            statusText.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-primary me-1"></i> กำลังค้นหาตำแหน่ง...';
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        currentLat = position.coords.latitude;
+                        currentLng = position.coords.longitude;
+                        statusText.className = "small text-success fw-bold";
+                        statusText.innerHTML = `<i class="fa-solid fa-check-circle me-1"></i>ได้พิกัดแล้ว: ${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}`;
+                    },
+                    (error) => {
+                        statusText.className = "small text-danger";
+                        statusText.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i> ไม่สามารถเข้าถึง GPS ได้ ใช้พิกัดเริ่มต้น';
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            } else {
+                statusText.innerHTML = 'เบราว์เซอร์ไม่รองรับ GPS';
+            }
+        }
+
         function initMap() {
             if (!map) {
                 map = L.map('map1').setView([13.4114, 101.0169], 14);
@@ -277,7 +333,7 @@
                 if (show) {
                     let color = item.status === 'วิกฤต' ? 'red' : (item.status === 'เฝ้าระวัง' ? 'orange' : 'green');
                     let marker = L.circleMarker([item.lat, item.lng], { color: color, fillColor: color, fillOpacity: 0.85, radius: 10 }).addTo(map);
-                    marker.bindPopup(`<b>${item.location}</b><br>ระดับ: <strong>${item.status}</strong><br><small>${item.details}</small>`);
+                    marker.bindPopup(`<b>${item.location}</b><br>ระดับ: <strong>${item.status}</strong><br>การดำเนินงาน: <strong>${item.actionStatus || 'รอดำเนินการ'}</strong><br><small>${item.details}</small>`);
                     markersGroup.push(marker);
                 }
             });
@@ -288,20 +344,93 @@
             const reports = getStoredReports();
             document.getElementById('totalCountBadge').innerText = `${reports.length} รายการ`;
 
+            if (reports.length === 0) {
+                container.innerHTML = `<div class="text-center py-5 text-muted"><i class="fa-solid fa-inbox fs-1 mb-2 d-block"></i>ยังไม่มีรายการแจ้งเหตุในขณะนี้</div>`;
+                return;
+            }
+
             container.innerHTML = '';
-            reports.forEach(item => {
+            reports.forEach((item, index) => {
                 let badgeClass = item.status === 'วิกฤต' ? 'bg-danger' : (item.status === 'เฝ้าระวัง' ? 'bg-warning text-dark' : 'bg-success');
+                let currentAction = item.actionStatus || 'รอดำเนินการ';
+
                 container.innerHTML += `
                     <div class="list-group-item p-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <h6 class="mb-0 fw-bold">${item.location}</h6>
-                            <span class="badge ${badgeClass}">${item.status}</span>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <h6 class="mb-0 fw-bold d-inline me-2">${item.location}</h6>
+                                <span class="badge ${badgeClass}">${item.status}</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteReport(${item.id})" title="ลบรายการ">
+                                <i class="fa-solid fa-trash-can"></i> ลบ
+                            </button>
                         </div>
-                        <p class="mb-1 text-secondary" style="font-size: 0.9rem;">${item.details}</p>
-                        <small class="text-muted"><i class="fa-regular fa-clock me-1"></i>${item.timestamp}</small>
+                        <p class="mb-2 text-secondary" style="font-size: 0.9rem;">${item.details}</p>
+                        
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top">
+                            <small class="text-muted"><i class="fa-regular fa-clock me-1"></i>${item.timestamp}</small>
+                            
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="fw-bold text-dark">สถานะการช่วยเหลือ:</small>
+                                <select class="form-select form-select-sm" style="width: auto;" onchange="updateActionStatus(${item.id}, this.value)">
+                                    <option value="⏳ รอดำเนินการ" ${currentAction === '⏳ รอดำเนินการ' ? 'selected' : ''}>⏳ รอดำเนินการ</option>
+                                    <option value="🔄 กำลังดำเนินการ" ${currentAction === '🔄 กำลังดำเนินการ' ? 'selected' : ''}>🔄 กำลังดำเนินการ</option>
+                                    <option value="🛟 เข้าช่วยเหลือแล้ว" ${currentAction === '🛟 เข้าช่วยเหลือแล้ว' ? 'selected' : ''}>🛟 เข้าช่วยเหลือแล้ว</option>
+                                    <option value="✅ เสร็จสิ้นแล้ว" ${currentAction === '✅ เสร็จสิ้นแล้ว' ? 'selected' : ''}>✅ เสร็จสิ้นแล้ว</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 `;
             });
+        }
+
+        function updateActionStatus(id, newStatus) {
+            let reports = getStoredReports();
+            const index = reports.findIndex(r => r.id === id);
+            if (index !== -1) {
+                reports[index].actionStatus = newStatus;
+                saveReports(reports);
+            }
+        }
+
+        function deleteReport(id) {
+            if (confirm("คุณต้องการลบรายการแจ้งเหตุนี้ใช่หรือไม่?")) {
+                let reports = getStoredReports();
+                reports = reports.filter(r => r.id !== id);
+                saveReports(reports);
+            }
+        }
+
+        function submitNewReport(e) {
+            e.preventDefault();
+            const locationText = document.getElementById('inputLocation').value;
+            const status = document.getElementById('inputStatus').value;
+            const details = document.getElementById('inputDetails').value;
+
+            const newReport = {
+                id: Date.now(),
+                location: locationText,
+                status: status,
+                details: details,
+                actionStatus: '⏳ รอดำเนินการ',
+                timestamp: new Date().toLocaleString('th-TH'),
+                lat: currentLat,
+                lng: currentLng
+            };
+
+            const reports = getStoredReports();
+            reports.unshift(newReport);
+            saveReports(reports);
+
+            // Play Alert Sound on new report
+            if (document.getElementById('soundToggle').checked) {
+                playAlertSound();
+            }
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('reportModal'));
+            modal.hide();
+            alert("บันทึกการแจ้งเหตุเรียบร้อยแล้ว!");
         }
 
         function switchRadar(type) {
@@ -312,46 +441,6 @@
                 document.getElementById('radarRainFrame').classList.add('d-none');
                 document.getElementById('radarWindFrame').classList.remove('d-none');
             }
-        }
-
-        function onLocationSelectChange() {
-            const val = document.getElementById('selLocation').value;
-            const input = document.getElementById('inputLocation');
-            if (val !== 'custom' && locationCoords[val]) {
-                input.value = locationCoords[val].name;
-            }
-        }
-
-        function submitNewReport(e) {
-            e.preventDefault();
-            const sel = document.getElementById('selLocation').value;
-            const locationText = document.getElementById('inputLocation').value;
-            const status = document.getElementById('inputStatus').value;
-            const details = document.getElementById('inputDetails').value;
-
-            let lat = 13.4114, lng = 101.0169;
-            if (sel !== 'custom' && locationCoords[sel]) {
-                lat = locationCoords[sel].lat;
-                lng = locationCoords[sel].lng;
-            }
-
-            const newReport = {
-                id: Date.now(),
-                location: locationText,
-                status: status,
-                details: details,
-                timestamp: new Date().toLocaleString('th-TH'),
-                lat: lat,
-                lng: lng
-            };
-
-            const reports = getStoredReports();
-            reports.unshift(newReport);
-            saveReports(reports);
-
-            const modal = bootstrap.Modal.getInstance(document.getElementById('reportModal'));
-            modal.hide();
-            alert("บันทึกการแจ้งเหตุเรียบร้อยแล้ว!");
         }
 
         window.onload = function() {
