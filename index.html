@@ -13,6 +13,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
+    <!-- Firebase SDK (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; color: #334155; }
         .header-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; }
@@ -161,7 +165,6 @@
                             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                                 <h5 class="fw-bold mb-0"><i class="fa-solid fa-list-check me-2 text-primary"></i>รายการรับแจ้งเหตุจากประชาชน</h5>
                                 <div class="d-flex align-items-center gap-2">
-                                    <!-- ปุ่ม Export Excel/CSV ที่เพิ่มเข้ามา -->
                                     <button class="btn btn-sm btn-outline-success fw-bold" onclick="exportToCSV()">
                                         <i class="fa-solid fa-file-excel me-1"></i> ส่งออกข้อมูล Excel (CSV)
                                     </button>
@@ -269,10 +272,28 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
+        // 1. Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAQP_ROydILchkvlGCHnFinmIAgQyB9bBw",
+            authDomain: "nmd-floodwatch.firebaseapp.com",
+            databaseURL: "https://nmd-floodwatch-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "nmd-floodwatch",
+            storageBucket: "nmd-floodwatch.firebasestorage.app",
+            messagingSenderId: "148054276060",
+            appId: "1:148054276060:web:a306a48b785bf7e4660119",
+            measurementId: "G-SYK1JP7X6J"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         let currentLat = 13.4114;
         let currentLng = 101.0169;
         let map, markersGroup = [];
+        let allReports = [];
 
+        // เสียงการแจ้งเตือน
         function playAlertSound() {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -299,6 +320,7 @@
             }
         }
 
+        // Custom Toast Notification (สีส้ม)
         function showOrangeToast(msg) {
             document.getElementById('toastMessage').innerText = msg;
             const toastEl = document.getElementById('orangeToast');
@@ -306,18 +328,30 @@
             toast.show();
         }
 
+        // ฟังข้อมูลแบบ Real-Time จาก Firebase
+        function listenToFirebaseReports() {
+            database.ref('reports').on('value', (snapshot) => {
+                const data = snapshot.val();
+                allReports = [];
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        allReports.push({
+                            firebaseKey: key,
+                            ...data[key]
+                        });
+                    });
+                    allReports.sort((a, b) => b.id - a.id);
+                }
+                renderReports();
+                updateMapMarkers();
+            });
+        }
+
         function getStoredReports() {
-            const saved = localStorage.getItem('nmd_real_reports');
-            return saved ? JSON.parse(saved) : [];
+            return allReports;
         }
 
-        function saveReports(data) {
-            localStorage.setItem('nmd_real_reports', JSON.stringify(data));
-            renderReports();
-            updateMapMarkers();
-        }
-
-        // ฟังก์ชัน Export ข้อมูลเป็น Excel / CSV
+        // Export เป็นไฟล์ CSV / Excel
         function exportToCSV() {
             const reports = getStoredReports();
             if (reports.length === 0) {
@@ -420,7 +454,7 @@
             }
 
             container.innerHTML = '';
-            reports.forEach((item, index) => {
+            reports.forEach((item) => {
                 let badgeClass = item.status === 'วิกฤต' ? 'bg-danger' : (item.status === 'เฝ้าระวัง' ? 'bg-warning text-dark' : 'bg-success');
                 let currentAction = item.actionStatus || 'รอดำเนินการ';
 
@@ -436,7 +470,7 @@
                                 <h6 class="mb-0 fw-bold d-inline me-2">${item.location}</h6>
                                 <span class="badge ${badgeClass}">${item.status}</span>
                             </div>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteReport(${item.id})" title="ลบรายการ">
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteReport('${item.firebaseKey}')" title="ลบรายการ">
                                 <i class="fa-solid fa-trash-can"></i> ลบ
                             </button>
                         </div>
@@ -450,7 +484,7 @@
                             
                             <div class="d-flex align-items-center gap-2">
                                 <small class="fw-bold text-dark">สถานะการช่วยเหลือ:</small>
-                                <select class="form-select form-select-sm" style="width: auto;" onchange="updateActionStatus(${item.id}, this.value)">
+                                <select class="form-select form-select-sm" style="width: auto;" onchange="updateActionStatus('${item.firebaseKey}', this.value)">
                                     <option value="⏳ รอดำเนินการ" ${currentAction === '⏳ รอดำเนินการ' ? 'selected' : ''}>⏳ รอดำเนินการ</option>
                                     <option value="🔄 กำลังดำเนินการ" ${currentAction === '🔄 กำลังดำเนินการ' ? 'selected' : ''}>🔄 กำลังดำเนินการ</option>
                                     <option value="🛟 เข้าช่วยเหลือแล้ว" ${currentAction === '🛟 เข้าช่วยเหลือแล้ว' ? 'selected' : ''}>🛟 เข้าช่วยเหลือแล้ว</option>
@@ -463,22 +497,24 @@
             });
         }
 
-        function updateActionStatus(id, newStatus) {
-            let reports = getStoredReports();
-            const index = reports.findIndex(r => r.id === id);
-            if (index !== -1) {
-                reports[index].actionStatus = newStatus;
-                saveReports(reports);
-                showOrangeToast("อัปเดตสถานะการช่วยเหลือเรียบร้อยแล้ว!");
-            }
+        function updateActionStatus(firebaseKey, newStatus) {
+            if (!firebaseKey) return;
+            database.ref('reports/' + firebaseKey).update({
+                actionStatus: newStatus
+            }, (error) => {
+                if (!error) {
+                    showOrangeToast("อัปเดตสถานะการช่วยเหลือเรียบร้อยแล้ว!");
+                }
+            });
         }
 
-        function deleteReport(id) {
+        function deleteReport(firebaseKey) {
             if (confirm("คุณต้องการลบรายการแจ้งเหตุนี้ใช่หรือไม่?")) {
-                let reports = getStoredReports();
-                reports = reports.filter(r => r.id !== id);
-                saveReports(reports);
-                showOrangeToast("ลบรายการเรียบร้อยแล้ว!");
+                database.ref('reports/' + firebaseKey).remove((error) => {
+                    if (!error) {
+                        showOrangeToast("ลบรายการเรียบร้อยแล้ว!");
+                    }
+                });
             }
         }
 
@@ -503,19 +539,21 @@
                 lng: currentLng
             };
 
-            const reports = getStoredReports();
-            reports.unshift(newReport);
-            saveReports(reports);
+            database.ref('reports').push(newReport, (error) => {
+                if (error) {
+                    showOrangeToast("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+                } else {
+                    if (document.getElementById('soundToggle').checked) {
+                        playAlertSound();
+                    }
 
-            if (document.getElementById('soundToggle').checked) {
-                playAlertSound();
-            }
+                    e.target.reset();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('reportModal'));
+                    modal.hide();
 
-            e.target.reset();
-            const modal = bootstrap.Modal.getInstance(document.getElementById('reportModal'));
-            modal.hide();
-
-            showOrangeToast("บันทึกการแจ้งเหตุเรียบร้อยแล้ว!");
+                    showOrangeToast("บันทึกการแจ้งเหตุเรียบร้อยแล้ว!");
+                }
+            });
         }
 
         function switchRadar(type) {
@@ -529,7 +567,7 @@
         }
 
         window.onload = function() {
-            renderReports();
+            listenToFirebaseReports();
             initMap();
         };
     </script>
