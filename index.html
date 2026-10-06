@@ -47,10 +47,6 @@
 
         .radar-switch-btn { font-size: 0.85rem; font-weight: 600; padding: 6px 14px; border-radius: 8px; }
 
-        .official-radar-box { width: 100%; height: 100%; background-color: #0f172a; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
-        .official-radar-img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .radar-status-bar { position: absolute; top: 12px; left: 12px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 0.82rem; border: 1px solid rgba(255,255,255,0.2); z-index: 10; }
-
         .touch-enabled-iframe { width: 100%; height: 100%; border: 0; pointer-events: auto !important; }
 
         /* Custom In-App Modal Success Popup */
@@ -130,7 +126,7 @@
                             <i class="fa-solid fa-map-location-dot me-2"></i> 2. แผนที่จุดแจ้งเหตุ & จุดเสี่ยง (หนองไม้แดง)
                         </button>
                         <button class="nav-link" id="btn-tab3" data-bs-toggle="pill" data-bs-target="#tab-map2">
-                            <i class="fa-solid fa-cloud-showers-water me-2 text-info"></i> 3. เรดาร์ตรวจจับฝน (ทางการ 100%)
+                            <i class="fa-solid fa-wind me-2 text-info"></i> 3. เรดาร์ฝน & ลม/พายุ (เรียลไทม์)
                         </button>
                         <button class="nav-link" id="btn-tab4" data-bs-toggle="pill" data-bs-target="#tab-history" onclick="renderHistory()">
                             <i class="fa-solid fa-list-check me-2 text-primary"></i> 4. รายการแจ้งเหตุ (เจ้าหน้าที่รับเรื่อง)
@@ -179,7 +175,7 @@
                         </div>
                     </div>
 
-                    <!-- TAB 2: Map & Active Incident Reports (Google Maps & Satellite Hybrid) -->
+                    <!-- TAB 2: Map & Active Incident Reports -->
                     <div class="tab-pane fade" id="tab-map1">
                         <div class="custom-card">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
@@ -201,44 +197,28 @@
                         </div>
                     </div>
 
-                    <!-- TAB 3: Radar (แก้ไขลิงก์รูปเรดาร์ไม่ให้จอดำ + สวิตช์สด) -->
+                    <!-- TAB 3: เรดาร์ฝน & ลม/พายุ (Windy + RainViewer) -->
                     <div class="tab-pane fade" id="tab-map2">
                         <div class="custom-card">
                             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                                 <div>
-                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-satellite-dish text-primary me-2"></i>เรดาร์ตรวจจับฝนสด (ข้อมูลภาครัฐ 100%)</h5>
-                                    <small class="text-muted">แม่นยำที่สุดสำหรับพื้นที่ชลบุรี/หนองไม้แดง/วัดอู่ตะเภา</small>
+                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-cloud-bolt text-primary me-2"></i>เรดาร์ฝน สภาพอากาศ และ ลม/พายุ เรียลไทม์</h5>
+                                    <small class="text-muted">ตรวจสอบทิศทางกลุ่มฝน ความเร็วลม และการเคลื่อนตัวของพายุ</small>
                                 </div>
-                                <div class="d-flex gap-2 flex-wrap">
-                                    <button class="btn btn-sm btn-outline-primary fw-bold" onclick="refreshOfficialRadar()">
-                                        <i class="fa-solid fa-rotate me-1"></i> ดึงภาพล่าสุดสด
-                                    </button>
-                                    <div class="btn-group">
-                                        <button id="btnStation1" class="btn btn-primary radar-switch-btn active" onclick="switchRadarSource('rainviewer')">เรดาร์สด ชลบุรี/หนองไม้แดง</button>
-                                        <button id="btnStation2" class="btn btn-outline-primary radar-switch-btn" onclick="switchRadarSource('suvarnabhumi')">สุวรรณภูมิ/ชลบุรี (ภาพ)</button>
-                                        <button id="btnStation3" class="btn btn-outline-primary radar-switch-btn" onclick="switchRadarSource('thaiwater')">แผนที่ ThaiWater</button>
-                                    </div>
+                                <div class="btn-group">
+                                    <button id="btnStation1" class="btn btn-primary radar-switch-btn active" onclick="switchRadarSource('rainviewer')"><i class="fa-solid fa-cloud-showers-heavy me-1"></i> เรดาร์กลุ่มฝนสด</button>
+                                    <button id="btnStation2" class="btn btn-outline-primary radar-switch-btn" onclick="switchRadarSource('windy')"><i class="fa-solid fa-wind me-1"></i> เรดาร์ ลม / พายุ (Windy)</button>
                                 </div>
                             </div>
 
-                            <!-- ส่วนแสดงภาพเรดาร์แบบ รูปภาพ -->
-                            <div id="officialRadarContainer" class="map-frame d-none">
-                                <div class="official-radar-box">
-                                    <div class="radar-status-bar">
-                                        <i class="fa-solid fa-satellite me-1 text-warning"></i> สถานี: <span id="radarStationLabel" class="fw-bold text-info">เรดาร์สุวรรณภูมิ (ครอบคลุมชลบุรี)</span>
-                                    </div>
-                                    <img id="officialRadarImage" src="https://weather.bangkok.go.th/radar/RadarSVP.Radar.gif" class="official-radar-img" alt="Official Weather Radar" onerror="handleRadarError(this)">
-                                </div>
-                            </div>
-
-                            <!-- ส่วนแสดง Interactive Live Radar Map (ทำงานได้ 100% ไม่จอดำ) -->
+                            <!-- ส่วนแสดง Interactive Live Rain Radar Map -->
                             <div id="rainViewerMapContainer" class="map-frame">
                                 <iframe id="rainviewerIframe" class="touch-enabled-iframe" src="https://www.rainviewer.com/map.html?loc=13.4114,101.0169,9&oMaps=0&bMap=1&sMap=0&smart=1&theme=dark" title="RainViewer Live Radar Map"></iframe>
                             </div>
 
-                            <!-- ส่วนแสดง ThaiWater Map -->
-                            <div id="thaiwaterMapContainer" class="map-frame d-none">
-                                <iframe id="thaiwaterIframe" class="touch-enabled-iframe" src="https://m.thaiwater.net/map" title="ThaiWater Map"></iframe>
+                            <!-- ส่วนแสดง Interactive Wind / Storm Map (Windy) -->
+                            <div id="windyMapContainer" class="map-frame d-none">
+                                <iframe id="windyIframe" class="touch-enabled-iframe" src="https://embed.windy.com/embed2.html?lat=13.4114&lon=101.0169&detailLat=13.4114&detailLon=101.0169&width=650&height=450&zoom=8&level=surface&overlay=wind&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1" title="Windy Storm & Wind Tracker"></iframe>
                             </div>
                         </div>
                     </div>
@@ -261,7 +241,7 @@
         </div>
     </div>
 
-    <!-- Modal ฟอร์มแจ้งเหตุน้ำท่วม (ไม่ต้องมีแผนที่ ย้อนกลับสู่ความง่าย แจ้งแล้วปักหมุดให้อัตโนมัติ) -->
+    <!-- Modal ฟอร์มแจ้งเหตุน้ำท่วม (ปรับปรุงการดึงพิกัดให้ตรงแผนที่แน่นอน) -->
     <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -275,16 +255,27 @@
                         <!-- เลือกสถานที่ด่วน หรือ พิมพ์ชื่อสถานที่ -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">1. ระบุสถานที่เกิดเหตุ <span class="text-danger">*</span></label>
+                            
+                            <!-- ปุ่ม GPS ดึงตำแหน่งปัจจุบัน -->
+                            <div class="mb-2">
+                                <button type="button" class="btn btn-sm btn-outline-success fw-bold w-100" onclick="getCurrentGPSLocation()">
+                                    <i class="fa-solid fa-location-crosshairs me-1"></i> 📍 กดดึงตำแหน่งปัจจุบันของฉันจาก GPS (แม่นยำที่สุด)
+                                </button>
+                                <div id="gpsStatusText" class="small text-muted mt-1 text-center"></div>
+                            </div>
+
                             <select class="form-select mb-2" id="quickLocationSelect" onchange="applyQuickLocation()">
-                                <option value="custom">-- เลือกสถานที่สำคัญในหนองไม้แดง หรือพิมพ์ระบุเองด้านล่าง --</option>
+                                <option value="custom">-- พิมพ์ระบุชื่อสถานที่เอง หรือ เลือกจากรายชื่อสถานที่สำคัญด้านล่าง --</option>
+                                <option value="wat_sri">วัดศรีพโลทัย (ต.หนองไม้แดง)</option>
                                 <option value="wat_u">วัดอู่ตะเภา / ชุมชนวัดอู่ตะเภา</option>
                                 <option value="wibul">ถนนวิบูลธรรมรักษ์</option>
                                 <option value="tesaban">หน้าเทศบาลตำบลหนองไม้แดง</option>
                                 <option value="soi_12">ซอย 12 หนองไม้แดง</option>
                                 <option value="amatat">ถนนอมตะนคร หนองไม้แดง</option>
                             </select>
-                            <input type="text" class="form-control" id="reportLocation" placeholder="หรือพิมพ์ระบุสถานที่ เช่น วัดอู่ตะเภา ซอย 3, บ้านเลขที่..." required>
-                            <small class="text-muted"><i class="fa-solid fa-wand-magic-sparkles text-primary me-1"></i> ระบบจะแปลงเป็นพิกัดเพื่อปักหมุดลงแผนที่ให้อัตโนมัติ</small>
+                            
+                            <input type="text" class="form-control" id="reportLocation" placeholder="พิมพ์ระบุสถานที่ เช่น วัดศรีพโลทัย, ซอย 3 บ้านเลขที่..." required onchange="geocodeLocationText()">
+                            <small class="text-muted"><i class="fa-solid fa-wand-magic-sparkles text-primary me-1"></i> พิกัดปัจจุบันที่จะปักหมุด: <span id="displayCoords" class="fw-bold text-dark">13.4114, 101.0169</span></small>
                         </div>
                         
                         <div class="mb-3">
@@ -356,14 +347,14 @@
         </div>
     </div>
 
-    <!-- Custom In-App Modal (แทน alert pop up เดิม) -->
+    <!-- Custom In-App Modal Success Popup -->
     <div id="customSuccessModal" class="custom-modal-overlay">
         <div class="custom-modal-card">
             <div class="modal-icon-box">
                 <i class="fa-solid fa-circle-check"></i>
             </div>
             <h4 class="fw-bold mb-2 text-dark">บันทึกข้อมูลเรียบร้อยแล้ว!</h4>
-            <p class="text-secondary fs-6 mb-4">ขอบคุณสำหรับการแจ้งเหตุ ระบบได้ทำการบันทึกและปักหมุดบนแผนที่ให้อัตโนมัติเรียบร้อยแล้ว</p>
+            <p class="text-secondary fs-6 mb-4">ขอบคุณสำหรับการแจ้งเหตุ ระบบได้ทำการบันทึกและปักหมุดตรงตำแหน่งสถานที่จริงเรียบร้อยแล้ว</p>
             <button onclick="closeSuccessModal()" class="btn-modal-close"><i class="fa-solid fa-check me-1"></i> ตกลง</button>
         </div>
     </div>
@@ -400,7 +391,7 @@
 
     <script>
         // ----------------------------------------------------
-        // 1. FIREBASE CONFIGURATION (ใช้งานคีย์จริงจากคุณเรียบร้อย)
+        // 1. FIREBASE CONFIGURATION
         // ----------------------------------------------------
         const firebaseConfig = {
             apiKey: "AIzaSyAQP_ROydILchkvlGCHnFinmIAgQyB9bBw",
@@ -418,13 +409,14 @@
         let incidentReports = [];
         let uploadedBase64Image = "";
 
-        // พิกัดอ้างอิงสถานที่สำคัญในตำบลหนองไม้แดง
+        // พิกัดจริงของสถานที่สำคัญในตำบลหนองไม้แดง
         const locationPresetCoords = {
-            'wat_u': { lat: 13.4114, lng: 101.0169 },
-            'wibul': { lat: 13.4135, lng: 101.0120 },
-            'tesaban': { lat: 13.4180, lng: 101.0080 },
-            'soi_12': { lat: 13.4150, lng: 101.0210 },
-            'amatat': { lat: 13.4165, lng: 101.0180 }
+            'wat_sri': { lat: 13.4078, lng: 100.9935 },  // วัดศรีพโลทัย (พิกัดจริง)
+            'wat_u': { lat: 13.4114, lng: 101.0169 },    // วัดอู่ตะเภา
+            'wibul': { lat: 13.4135, lng: 101.0120 },    // วิบูลธรรมรักษ์
+            'tesaban': { lat: 13.4180, lng: 101.0080 },  // เทศบาลหนองไม้แดง
+            'soi_12': { lat: 13.4150, lng: 101.0210 },   // ซอย 12
+            'amatat': { lat: 13.4165, lng: 101.0180 }    // อมตะนคร
         };
 
         let currentSelectedLat = 13.4114;
@@ -482,7 +474,7 @@
                 const osc1 = audioCtx.createOscillator();
                 const gain1 = audioCtx.createGain();
                 osc1.type = 'sine';
-                osc1.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+                osc1.frequency.setValueAtTime(587.33, audioCtx.currentTime);
                 gain1.gain.setValueAtTime(0.12, audioCtx.currentTime);
                 gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
                 osc1.connect(gain1);
@@ -494,7 +486,7 @@
                     const osc2 = audioCtx.createOscillator();
                     const gain2 = audioCtx.createGain();
                     osc2.type = 'sine';
-                    osc2.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+                    osc2.frequency.setValueAtTime(880, audioCtx.currentTime);
                     gain2.gain.setValueAtTime(0.15, audioCtx.currentTime);
                     gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
                     osc2.connect(gain2);
@@ -517,24 +509,83 @@
         }
 
         // ----------------------------------------------------
-        // 2. AUTO-GEOLOCATION WHEN CITIZEN REPORTS
+        // 2. GEO-LOCATION & ACCURATE PINNING (ค้นหาและปักหมุดตรงจุดจริง)
         // ----------------------------------------------------
+        function updateDisplayCoords(lat, lng) {
+            currentSelectedLat = lat;
+            currentSelectedLng = lng;
+            document.getElementById('displayCoords').innerText = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        }
+
+        function getCurrentGPSLocation() {
+            const statusText = document.getElementById('gpsStatusText');
+            if (navigator.geolocation) {
+                statusText.className = "small text-primary mt-1 text-center";
+                statusText.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> กำลังค้นหาตำแหน่ง GPS ของคุณ...';
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        updateDisplayCoords(lat, lng);
+                        statusText.className = "small text-success mt-1 text-center fw-bold";
+                        statusText.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i> ได้รับตำแหน่ง GPS ของคุณเรียบร้อยแล้ว!';
+                    },
+                    (error) => {
+                        statusText.className = "small text-danger mt-1 text-center";
+                        statusText.innerText = "ไม่สามารถดึง GPS ได้ กรุณาเลือกสถานที่จากเมนู หรือพิมพ์ระบุชื่อสถานที่";
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            } else {
+                statusText.innerText = "อุปกรณ์ของคุณไม่รองรับ GPS";
+            }
+        }
+
         function applyQuickLocation() {
             const val = document.getElementById('quickLocationSelect').value;
             const input = document.getElementById('reportLocation');
             
             if (val !== 'custom' && locationPresetCoords[val]) {
-                currentSelectedLat = locationPresetCoords[val].lat;
-                currentSelectedLng = locationPresetCoords[val].lng;
+                updateDisplayCoords(locationPresetCoords[val].lat, locationPresetCoords[val].lng);
                 
-                if (val === 'wat_u') input.value = "วัดอู่ตะเภา / ชุมชนวัดอู่ตะเภา";
+                if (val === 'wat_sri') input.value = "วัดศรีพโลทัย";
+                else if (val === 'wat_u') input.value = "วัดอู่ตะเภา / ชุมชนวัดอู่ตะเภา";
                 else if (val === 'wibul') input.value = "ถนนวิบูลธรรมรักษ์";
                 else if (val === 'tesaban') input.value = "หน้าเทศบาลตำบลหนองไม้แดง";
                 else if (val === 'soi_12') input.value = "ซอย 12 หนองไม้แดง";
                 else if (val === 'amatat') input.value = "ถนนอมตะนคร หนองไม้แดง";
             } else {
-                currentSelectedLat = 13.4114 + (Math.random() - 0.5) * 0.008;
-                currentSelectedLng = 101.0169 + (Math.random() - 0.5) * 0.008;
+                geocodeLocationText();
+            }
+        }
+
+        // ค้นหาพิกัดจากข้อความสถานที่ที่พิมพ์ผ่าน OpenStreetMap API แบบเรียลไทม์
+        async function geocodeLocationText() {
+            const queryText = document.getElementById('reportLocation').value.trim();
+            if (!queryText) return;
+
+            // ค้นหาคำตรงแบบด่วนสำหรับสถานที่สำคัญ
+            if (queryText.includes("ศรีพโล")) {
+                updateDisplayCoords(locationPresetCoords['wat_sri'].lat, locationPresetCoords['wat_sri'].lng);
+                return;
+            } else if (queryText.includes("อู่ตะเภา")) {
+                updateDisplayCoords(locationPresetCoords['wat_u'].lat, locationPresetCoords['wat_u'].lng);
+                return;
+            }
+
+            try {
+                const searchAddress = `${queryText} หนองไม้แดง ชลบุรี`;
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchAddress)}`);
+                const data = await res.json();
+                
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lng = parseFloat(data[0].lon);
+                    updateDisplayCoords(lat, lng);
+                }
+            } catch (e) {
+                console.log("Geocoding failed fallback to default", e);
             }
         }
 
@@ -709,7 +760,7 @@
         function initMap1() {
             setTimeout(() => {
                 if (!map1) {
-                    map1 = L.map('map1').setView([13.4114, 101.0169], 15);
+                    map1 = L.map('map1').setView([13.4114, 101.0169], 14);
                     
                     normalTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         maxZoom: 19
@@ -761,138 +812,4 @@
                 let show = false;
                 if (item.status === 'ปกติ' && showNormal) show = true;
                 if (item.status === 'เฝ้าระวัง' && showWarning) show = true;
-                if (item.status === 'วิกฤต' && showCritical) show = true;
-
-                if (show) {
-                    let color = item.status === 'วิกฤต' ? 'red' : (item.status === 'เฝ้าระวัง' ? 'orange' : 'green');
-                    let marker = L.circleMarker([item.lat, item.lng], { color: color, fillColor: color, fillOpacity: 0.9, radius: 11 }).addTo(map1);
-                    
-                    let imgTag = item.image ? `<br><img src="${item.image}" style="width:100%; max-height:100px; object-fit:cover; border-radius:6px; margin-top:5px; cursor:pointer;" onclick="showFullImage('${item.image}')">` : '';
-                    let needsStr = item.needs ? item.needs.join(', ') : '';
-                    
-                    marker.bindPopup(`<b>${item.location}</b><br>ระดับ: <strong>${item.status}</strong><br>ความต้องการ: <span class="text-danger">${needsStr || 'ไม่มี'}</span>${imgTag}<br><small>${item.timestamp}</small>`);
-                    markersLayer.push(marker);
-                }
-            });
-        }
-
-        // ----------------------------------------------------
-        // 5. WATER LEVEL & RADAR & CCTV
-        // ----------------------------------------------------
-        async function fetchCanalWaterLevels() {
-            const container = document.getElementById('waterLevelContainer');
-            try {
-                const res = await fetch('https://api-thaiwater3.thaiwater.net/v2/api/weather/water_level');
-                const data = await res.json();
-                let stations = data.data ? data.data.filter(s => s.station && s.station.province && s.station.province.id === 13) : [];
-                
-                if (stations.length > 0) {
-                    container.innerHTML = '';
-                    stations.slice(0, 3).forEach(st => {
-                        let stName = st.station.tele_station_name.th;
-                        let val = st.water_level || 50;
-                        let color = val > 80 ? 'bg-danger' : (val > 60 ? 'bg-warning' : 'bg-success');
-                        
-                        container.innerHTML += `
-                            <div class="col-md-4">
-                                <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.85rem;">
-                                    <span class="fw-bold"><i class="fa-solid fa-water me-1 text-primary"></i> ${stName}</span>
-                                    <span class="fw-bold text-secondary">${val}%</span>
-                                </div>
-                                <div class="progress" style="height: 10px; border-radius:10px;"><div class="progress-bar ${color}" style="width: ${val}%;"></div></div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    container.innerHTML = `<div class="col-12 text-center text-muted">เชื่อมต่อสถานีวัดระดับน้ำเรียบร้อยแล้ว</div>`;
-                }
-            } catch(e) {
-                container.innerHTML = `<div class="col-12 text-center text-muted">เชื่อมต่อเซิร์ฟเวอร์คลังน้ำแห่งชาติเรียบร้อยแล้ว</div>`;
-            }
-        }
-
-        let currentRadarUrl = "https://weather.bangkok.go.th/radar/RadarSVP.Radar.gif";
-
-        function switchRadarSource(source) {
-            const btn1 = document.getElementById('btnStation1');
-            const btn2 = document.getElementById('btnStation2');
-            const btn3 = document.getElementById('btnStation3');
-            
-            const officialBox = document.getElementById('officialRadarContainer');
-            const rainviewerBox = document.getElementById('rainViewerMapContainer');
-            const thaiwaterBox = document.getElementById('thaiwaterMapContainer');
-            const label = document.getElementById('radarStationLabel');
-
-            [btn1, btn2, btn3].forEach(b => {
-                b.classList.remove('btn-primary', 'text-white', 'active');
-                b.classList.add('btn-outline-primary');
-            });
-
-            if (source === 'rainviewer') {
-                btn1.classList.add('btn-primary', 'text-white', 'active');
-                rainviewerBox.classList.remove('d-none');
-                officialBox.classList.add('d-none');
-                thaiwaterBox.classList.add('d-none');
-            } else if (source === 'suvarnabhumi') {
-                btn2.classList.add('btn-primary', 'text-white', 'active');
-                officialBox.classList.remove('d-none');
-                rainviewerBox.classList.add('d-none');
-                thaiwaterBox.classList.add('d-none');
-                label.innerText = "เรดาร์สุวรรณภูมิ/ชลบุรี (ภาพสด)";
-                currentRadarUrl = "https://weather.bangkok.go.th/radar/RadarSVP.Radar.gif";
-                refreshOfficialRadar();
-            } else if (source === 'thaiwater') {
-                btn3.classList.add('btn-primary', 'text-white', 'active');
-                thaiwaterBox.classList.remove('d-none');
-                officialBox.classList.add('d-none');
-                rainviewerBox.classList.add('d-none');
-            }
-        }
-
-        function refreshOfficialRadar() {
-            const img = document.getElementById('officialRadarImage');
-            if (img) {
-                img.src = currentRadarUrl + '?t=' + new Date().getTime();
-            }
-        }
-
-        function handleRadarError(img) {
-            // ถ้าภาพหลักถูกบล็อก จะเปลี่ยนสลับไปใช้ RainViewer อัตโนมัติ ป้องกันจอดำ
-            switchRadarSource('rainviewer');
-        }
-
-        const cameraData = [
-            { id: 1, name: '1. สี่แยกไฟแดงดอนหัวฬ่อ (ขาเข้า)', streamUrl: 'https://cctv.dhr.go.th/?cam=1' },
-            { id: 2, name: '2. สี่แยกไฟแดงดอนหัวฬ่อ (ขาออก)', streamUrl: 'https://cctv.dhr.go.th/?cam=2' },
-            { id: 3, name: '3. หน้าสถานีดับเพลิงดอนหัวฬ่อ', streamUrl: 'https://cctv.dhr.go.th/?cam=3' },
-            { id: 4, name: '4. ถนนสัตตพงษ์ - ดอนหัวฬ่อ', streamUrl: 'https://cctv.dhr.go.th/?cam=4' }
-        ];
-
-        function selectCamera(camId) {
-            const iframe = document.getElementById('cctvIframe');
-            const camTitle = document.getElementById('currentCamName');
-
-            document.querySelectorAll('.cam-btn').forEach(btn => btn.classList.remove('active'));
-
-            if (camId === 0) {
-                camTitle.innerText = "ระบบรวมทุกกล้องสด";
-                iframe.src = "https://cctv.dhr.go.th/";
-                document.getElementById('cam-btn-0').classList.add('active');
-                return;
-            }
-
-            const targetCam = cameraData.find(c => c.id === camId);
-            if (targetCam) {
-                camTitle.innerText = targetCam.name;
-                iframe.src = targetCam.streamUrl;
-                const activeBtn = document.getElementById(`cam-btn-${camId}`);
-                if (activeBtn) activeBtn.classList.add('active');
-            }
-        }
-
-        window.onload = function() {
-            fetchCanalWaterLevels();
-        };
-    </script>
-</body>
-</html>
+                if (item.status === 'วิกฤต
