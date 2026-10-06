@@ -1,1 +1,363 @@
-# nmd-floodwatch
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NMD FloodWatch - ระบบเฝ้าระวังน้ำท่วม เทศบาลตำบลหนองไม้แดง</title>
+    
+    <!-- Fonts & Frameworks -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; color: #334155; }
+        .header-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; }
+        
+        .nav-pills .nav-link { font-weight: 500; color: #64748b; border-radius: 12px; padding: 12px 18px; margin-bottom: 8px; text-align: left; }
+        .nav-pills .nav-link.active { background-color: #0284c7; color: white; }
+        
+        .custom-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08); padding: 20px; margin-bottom: 20px; }
+        .map-frame { height: 500px; width: 100%; border-radius: 12px; background-color: #e2e8f0; overflow: hidden; position: relative; }
+
+        .filter-box { background: #f1f5f9; border-radius: 10px; padding: 6px 12px; cursor: pointer; border: 1px solid #cbd5e1; font-size: 0.9rem; }
+        
+        .cctv-video-container { position: relative; width: 100%; height: 500px; border-radius: 12px; overflow: hidden; background: #000; }
+        .cctv-iframe { width: 100%; height: 100%; border: 0; }
+
+        .need-tag { display: inline-block; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; margin-right: 4px; }
+        .report-img-thumb { max-width: 150px; max-height: 100px; object-fit: cover; border-radius: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header-bg py-3 px-4 mb-3">
+        <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <i class="fa-solid fa-shield-halved text-warning fs-2"></i>
+                <div>
+                    <h5 class="mb-0 fw-bold text-white">NMD FloodWatch Real-Time System</h5>
+                    <small class="text-white-50">ศูนย์เฝ้าระวังน้ำท่วม เทศบาลตำบลหนองไม้แดง</small>
+                </div>
+            </div>
+            
+            <button class="btn btn-danger fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> แจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ
+            </button>
+        </div>
+    </div>
+
+    <div class="container-fluid px-4">
+        
+        <!-- Status Bar -->
+        <div class="custom-card mb-3 py-3">
+            <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-water me-2"></i>ระดับน้ำในพื้นที่/คลองสำคัญ (เทศบาลตำบลหนองไม้แดง)</h6>
+            <div class="row g-3" id="waterLevelContainer">
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.85rem;">
+                        <span class="fw-bold"><i class="fa-solid fa-water me-1 text-primary"></i> คลองพานทอง (สถานีเฝ้าระวัง)</span>
+                        <span class="fw-bold text-success">ปกติ (35%)</span>
+                    </div>
+                    <div class="progress" style="height: 10px;"><div class="progress-bar bg-success" style="width: 35%;"></div></div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.85rem;">
+                        <span class="fw-bold"><i class="fa-solid fa-water me-1 text-primary"></i> ปากคลองวัดอู่ตะเภา</span>
+                        <span class="fw-bold text-warning">เฝ้าระวัง (62%)</span>
+                    </div>
+                    <div class="progress" style="height: 10px;"><div class="progress-bar bg-warning" style="width: 62%;"></div></div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.85rem;">
+                        <span class="fw-bold"><i class="fa-solid fa-water me-1 text-primary"></i> ประตูระบายน้ำคลองขุนสรศักดิ์</span>
+                        <span class="fw-bold text-success">ปกติ (28%)</span>
+                    </div>
+                    <div class="progress" style="height: 10px;"><div class="progress-bar bg-success" style="width: 28%;"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <!-- Sidebar Navigation -->
+            <div class="col-lg-3 col-md-4">
+                <div class="custom-card p-3">
+                    <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.8rem;">เมนูบริการ</h6>
+                    <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist">
+                        <button class="nav-link active" id="tab1-btn" data-bs-toggle="pill" data-bs-target="#tab-cctv">
+                            <i class="fa-solid fa-video me-2 text-danger"></i> 1. กล้อง CCTV จราจรและจุดเฝ้าระวัง
+                        </button>
+                        <button class="nav-link" id="tab2-btn" data-bs-toggle="pill" data-bs-target="#tab-map1" onclick="triggerMapResize()">
+                            <i class="fa-solid fa-map-location-dot me-2"></i> 2. แผนที่จุดแจ้งเหตุ & จุดเสี่ยง (หนองไม้แดง)
+                        </button>
+                        <button class="nav-link" id="tab3-btn" data-bs-toggle="pill" data-bs-target="#tab-map2">
+                            <i class="fa-solid fa-wind me-2 text-info"></i> 3. เรดาร์ฝน & ลม/พายุ (เรียลไทม์)
+                        </button>
+                        <button class="nav-link" id="tab4-btn" data-bs-toggle="pill" data-bs-target="#tab-history">
+                            <i class="fa-solid fa-list-check me-2 text-primary"></i> 4. รายการแจ้งเหตุ (เจ้าหน้าที่รับเรื่อง)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="col-lg-9 col-md-8">
+                <div class="tab-content">
+                    
+                    <!-- TAB 1: CCTV Stream -->
+                    <div class="tab-pane fade show active" id="tab-cctv">
+                        <div class="custom-card">
+                            <h5 class="fw-bold mb-3"><i class="fa-solid fa-video text-danger me-2"></i>กล้อง CCTV จราจรสด</h5>
+                            <div class="cctv-video-container">
+                                <iframe src="https://cctv.dhr.go.th/" class="cctv-iframe" title="CCTV Live Feed"></iframe>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: Map & Incident Reports -->
+                    <div class="tab-pane fade" id="tab-map1">
+                        <div class="custom-card">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
+                                <div class="d-flex align-items-center gap-2">
+                                    <h6 class="fw-bold mb-0"><i class="fa-solid fa-map-pin me-1 text-primary"></i> กรองสถานะ:</h6>
+                                    <label class="filter-box"><input type="checkbox" id="chkNormal" checked onchange="updateMapMarkers()"> 🟢 ปกติ</label>
+                                    <label class="filter-box"><input type="checkbox" id="chkWarning" checked onchange="updateMapMarkers()"> 🟡 เฝ้าระวัง</label>
+                                    <label class="filter-box"><input type="checkbox" id="chkCritical" checked onchange="updateMapMarkers()"> 🔴 วิกฤต</label>
+                                </div>
+                            </div>
+                            <div id="map1" class="map-frame"></div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: Radar & Wind Map (Windy + RainViewer) -->
+                    <div class="tab-pane fade" id="tab-map2">
+                        <div class="custom-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold mb-0"><i class="fa-solid fa-cloud-bolt text-primary me-2"></i>เรดาร์ตรวจจับฝน / ลม / พายุ</h5>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-primary" onclick="switchRadar('rain')">กลุ่มฝนสด</button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="switchRadar('wind')">ทิศทางลม / พายุ (Windy)</button>
+                                </div>
+                            </div>
+
+                            <div id="radarRainFrame" class="map-frame">
+                                <iframe class="w-100 h-100 border-0" src="https://www.rainviewer.com/map.html?loc=13.4114,101.0169,9&oMaps=0&bMap=1&sMap=0&smart=1&theme=dark"></iframe>
+                            </div>
+
+                            <div id="radarWindFrame" class="map-frame d-none">
+                                <iframe class="w-100 h-100 border-0" src="https://embed.windy.com/embed2.html?lat=13.4114&lon=101.0169&zoom=8&level=surface&overlay=wind&product=ecmwf"></iframe>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: History List -->
+                    <div class="tab-pane fade" id="tab-history">
+                        <div class="custom-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold mb-0"><i class="fa-solid fa-list-check me-2 text-primary"></i>รายการรับแจ้งเหตุจากประชาชน</h5>
+                                <span class="badge bg-primary" id="totalCountBadge">0 รายการ</span>
+                            </div>
+                            <div id="reportsList" class="list-group list-group-flush border rounded-3">
+                                <!-- Data rendered by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Form -->
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>แจ้งเหตุน้ำท่วมขัง</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form onsubmit="submitNewReport(event)">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">ระบุสถานที่เกิดเหตุ</label>
+                            <select class="form-select mb-2" id="selLocation" onchange="onLocationSelectChange()">
+                                <option value="wat_sri">วัดศรีพโลทัย (ต.หนองไม้แดง)</option>
+                                <option value="wat_u">วัดอู่ตะเภา</option>
+                                <option value="tesaban">หน้าเทศบาลตำบลหนองไม้แดง</option>
+                                <option value="custom">-- พิมพ์ชื่อสถานที่อื่น ๆ --</option>
+                            </select>
+                            <input type="text" class="form-control" id="inputLocation" value="วัดศรีพโลทัย" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">ระดับน้ำ</label>
+                            <select class="form-select" id="inputStatus" required>
+                                <option value="เฝ้าระวัง">🟡 เฝ้าระวัง (น้ำขัง 5-15 ซม.)</option>
+                                <option value="วิกฤต">🔴 วิกฤต (น้ำขังสูง 20 ซม. ขึ้นไป)</option>
+                                <option value="ปกติ">🟢 ปกติ (น้ำแห้งแล้ว)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">รายละเอียดเพิ่มเติม / เบอร์ติดต่อ</label>
+                            <textarea class="form-control" id="inputDetails" rows="2" placeholder="ระบุรายละเอียดและเบอร์โทรศัพท์" required></textarea>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn btn-danger fw-bold">ส่งข้อมูล</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Default Mock Data (รับประกันว่ามีข้อมูลขึ้นแน่นอน)
+        let defaultReports = [
+            { id: 101, location: "วัดศรีพโลทัย", status: "เฝ้าระวัง", details: "มีน้ำขังบริเวณลานวัดสูงประมาณ 10 ซม. โทร 081-XXX-XXXX", timestamp: "06/10/2569 14:30:00 น.", lat: 13.4078, lng: 100.9935 },
+            { id: 102, location: "วัดอู่ตะเภา", status: "วิกฤต", details: "น้ำท่วมขังทางเข้าวัด รถเล็กผ่านไม่ได้ โทร 089-XXX-XXXX", timestamp: "06/10/2569 15:10:00 น.", lat: 13.4114, lng: 101.0169 }
+        ];
+
+        const locationCoords = {
+            'wat_sri': { name: "วัดศรีพโลทัย", lat: 13.4078, lng: 100.9935 },
+            'wat_u': { name: "วัดอู่ตะเภา", lat: 13.4114, lng: 101.0169 },
+            'tesaban': { name: "หน้าเทศบาลตำบลหนองไม้แดง", lat: 13.4180, lng: 101.0080 }
+        };
+
+        let map, markersGroup = [];
+
+        function getStoredReports() {
+            const saved = localStorage.getItem('nmd_reports_data');
+            return saved ? JSON.parse(saved) : defaultReports;
+        }
+
+        function saveReports(data) {
+            localStorage.setItem('nmd_reports_data', JSON.stringify(data));
+            renderReports();
+            updateMapMarkers();
+        }
+
+        // Initialize Map & Solve Grey Map Issue
+        function initMap() {
+            if (!map) {
+                map = L.map('map1').setView([13.4114, 101.0169], 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+            }
+            updateMapMarkers();
+        }
+
+        function triggerMapResize() {
+            setTimeout(() => {
+                if (!map) { initMap(); }
+                map.invalidateSize();
+            }, 300);
+        }
+
+        function updateMapMarkers() {
+            if (!map) return;
+            markersGroup.forEach(m => map.removeLayer(m));
+            markersGroup = [];
+
+            const showNormal = document.getElementById('chkNormal').checked;
+            const showWarning = document.getElementById('chkWarning').checked;
+            const showCritical = document.getElementById('chkCritical').checked;
+
+            const reports = getStoredReports();
+            reports.forEach(item => {
+                let show = (item.status === 'ปกติ' && showNormal) || 
+                           (item.status === 'เฝ้าระวัง' && showWarning) || 
+                           (item.status === 'วิกฤต' && showCritical);
+
+                if (show) {
+                    let color = item.status === 'วิกฤต' ? 'red' : (item.status === 'เฝ้าระวัง' ? 'orange' : 'green');
+                    let marker = L.circleMarker([item.lat, item.lng], { color: color, fillColor: color, fillOpacity: 0.85, radius: 10 }).addTo(map);
+                    marker.bindPopup(`<b>${item.location}</b><br>ระดับ: <strong>${item.status}</strong><br><small>${item.details}</small>`);
+                    markersGroup.push(marker);
+                }
+            });
+        }
+
+        function renderReports() {
+            const container = document.getElementById('reportsList');
+            const reports = getStoredReports();
+            document.getElementById('totalCountBadge').innerText = `${reports.length} รายการ`;
+
+            container.innerHTML = '';
+            reports.forEach(item => {
+                let badgeClass = item.status === 'วิกฤต' ? 'bg-danger' : (item.status === 'เฝ้าระวัง' ? 'bg-warning text-dark' : 'bg-success');
+                container.innerHTML += `
+                    <div class="list-group-item p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="mb-0 fw-bold">${item.location}</h6>
+                            <span class="badge ${badgeClass}">${item.status}</span>
+                        </div>
+                        <p class="mb-1 text-secondary" style="font-size: 0.9rem;">${item.details}</p>
+                        <small class="text-muted"><i class="fa-regular fa-clock me-1"></i>${item.timestamp}</small>
+                    </div>
+                `;
+            });
+        }
+
+        function switchRadar(type) {
+            if (type === 'rain') {
+                document.getElementById('radarRainFrame').classList.remove('d-none');
+                document.getElementById('radarWindFrame').classList.add('d-none');
+            } else {
+                document.getElementById('radarRainFrame').classList.add('d-none');
+                document.getElementById('radarWindFrame').classList.remove('d-none');
+            }
+        }
+
+        function onLocationSelectChange() {
+            const val = document.getElementById('selLocation').value;
+            const input = document.getElementById('inputLocation');
+            if (val !== 'custom' && locationCoords[val]) {
+                input.value = locationCoords[val].name;
+            }
+        }
+
+        function submitNewReport(e) {
+            e.preventDefault();
+            const sel = document.getElementById('selLocation').value;
+            const locationText = document.getElementById('inputLocation').value;
+            const status = document.getElementById('inputStatus').value;
+            const details = document.getElementById('inputDetails').value;
+
+            let lat = 13.4114, lng = 101.0169;
+            if (sel !== 'custom' && locationCoords[sel]) {
+                lat = locationCoords[sel].lat;
+                lng = locationCoords[sel].lng;
+            }
+
+            const newReport = {
+                id: Date.now(),
+                location: locationText,
+                status: status,
+                details: details,
+                timestamp: new Date().toLocaleString('th-TH'),
+                lat: lat,
+                lng: lng
+            };
+
+            const reports = getStoredReports();
+            reports.unshift(newReport);
+            saveReports(reports);
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('reportModal'));
+            modal.hide();
+            alert("บันทึกการแจ้งเหตุเรียบร้อยแล้ว!");
+        }
+
+        window.onload = function() {
+            renderReports();
+            initMap();
+        };
+    </script>
+</body>
+</html>
