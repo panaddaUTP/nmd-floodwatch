@@ -21,20 +21,42 @@
         .nav-pills .nav-link.active { background-color: #0284c7; color: white; }
         
         .custom-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08); padding: 20px; margin-bottom: 20px; }
-        .map-frame { height: 500px; width: 100%; border-radius: 12px; background-color: #e2e8f0; overflow: hidden; position: relative; }
+        .map-frame { height: 520px; width: 100%; border-radius: 12px; background-color: #e2e8f0; overflow: hidden; position: relative; }
 
         .filter-box { background: #f1f5f9; border-radius: 10px; padding: 6px 12px; cursor: pointer; border: 1px solid #cbd5e1; font-size: 0.9rem; }
         
-        .cctv-video-container { position: relative; width: 100%; height: 500px; border-radius: 12px; overflow: hidden; background: #000; }
+        .cctv-video-container { position: relative; width: 100%; height: 520px; border-radius: 12px; overflow: hidden; background: #000; }
         .cctv-iframe { width: 100%; height: 100%; border: 0; }
         
         .need-chip { display: inline-block; background-color: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; margin-right: 4px; margin-bottom: 4px; }
+        
+        /* Custom Toast สีส้ม */
+        .toast-orange {
+            background-color: #f97316;
+            color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.4);
+            font-size: 0.95rem;
+        }
     </style>
 </head>
 <body>
 
+    <!-- Toast Container Notification -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <div id="orangeToast" class="toast toast-orange border-0 fade hide" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex align-items-center p-3">
+                <i class="fa-solid fa-circle-check fs-4 me-3"></i>
+                <div class="toast-body fw-bold p-0 me-auto" id="toastMessage">
+                    บันทึกการแจ้งเหตุเรียบร้อยแล้ว!
+                </div>
+                <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
-    <div class="header-bg py-3 px-4 mb-3">
+    <div class="header-bg py-3 px-4 mb-4">
         <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div class="d-flex align-items-center gap-3">
                 <i class="fa-solid fa-shield-halved text-warning fs-2"></i>
@@ -62,35 +84,6 @@
     </div>
 
     <div class="container-fluid px-4">
-        
-        <!-- Status Bar -->
-        <div class="custom-card mb-3 py-3">
-            <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-water me-2"></i>ระดับน้ำในพื้นที่/คลองสำคัญ (เทศบาลตำบลหนองไม้แดง)</h6>
-            <div class="row g-3" id="waterLevelContainer">
-                <div class="col-md-4">
-                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.85rem;">
-                        <span class="fw-bold"><i class="fa-solid fa-water me-1 text-primary"></i> คลองพานทอง (สถานีเฝ้าระวัง)</span>
-                        <span class="fw-bold text-success">ปกติ (35%)</span>
-                    </div>
-                    <div class="progress" style="height: 10px;"><div class="progress-bar bg-success" style="width: 35%;"></div></div>
-                </div>
-                <div class="col-md-4">
-                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.85rem;">
-                        <span class="fw-bold"><i class="fa-solid fa-water me-1 text-primary"></i> ปากคลองวัดอู่ตะเภา</span>
-                        <span class="fw-bold text-warning">เฝ้าระวัง (62%)</span>
-                    </div>
-                    <div class="progress" style="height: 10px;"><div class="progress-bar bg-warning" style="width: 62%;"></div></div>
-                </div>
-                <div class="col-md-4">
-                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.85rem;">
-                        <span class="fw-bold"><i class="fa-solid fa-water me-1 text-primary"></i> ประตูระบายน้ำคลองขุนสรศักดิ์</span>
-                        <span class="fw-bold text-success">ปกติ (28%)</span>
-                    </div>
-                    <div class="progress" style="height: 10px;"><div class="progress-bar bg-success" style="width: 28%;"></div></div>
-                </div>
-            </div>
-        </div>
-
         <div class="row g-3">
             <!-- Sidebar Navigation -->
             <div class="col-lg-3 col-md-4">
@@ -181,7 +174,7 @@
         </div>
     </div>
 
-    <!-- Modal Form (มีตัวเลือกความช่วยเหลือเพิ่มเติม) -->
+    <!-- Modal Form -->
     <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -277,7 +270,7 @@
         let currentLng = 101.0169;
         let map, markersGroup = [];
 
-        // Web Audio API for Alert Sound
+        // Web Audio API
         function playAlertSound() {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -296,12 +289,20 @@
                     osc.stop(audioCtx.currentTime + start + duration);
                 }
 
-                makeTone(880, 0, 0.15);   // Beep 1
-                makeTone(880, 0.2, 0.15); // Beep 2
-                makeTone(1174.66, 0.4, 0.3); // High Beep 3
+                makeTone(880, 0, 0.15);
+                makeTone(880, 0.2, 0.15);
+                makeTone(1174.66, 0.4, 0.3);
             } catch (e) {
                 console.log("Audio not supported or blocked");
             }
+        }
+
+        // Custom Toast Notification Function (สีส้ม)
+        function showOrangeToast(msg) {
+            document.getElementById('toastMessage').innerText = msg;
+            const toastEl = document.getElementById('orangeToast');
+            const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+            toast.show();
         }
 
         function getStoredReports() {
@@ -439,6 +440,7 @@
             if (index !== -1) {
                 reports[index].actionStatus = newStatus;
                 saveReports(reports);
+                showOrangeToast("อัปเดตสถานะการช่วยเหลือเรียบร้อยแล้ว!");
             }
         }
 
@@ -447,6 +449,7 @@
                 let reports = getStoredReports();
                 reports = reports.filter(r => r.id !== id);
                 saveReports(reports);
+                showOrangeToast("ลบรายการเรียบร้อยแล้ว!");
             }
         }
 
@@ -456,7 +459,6 @@
             const status = document.getElementById('inputStatus').value;
             const details = document.getElementById('inputDetails').value;
 
-            // Collect checked needs
             const needCheckboxes = document.querySelectorAll('.need-option:checked');
             const selectedNeeds = Array.from(needCheckboxes).map(cb => cb.value);
 
@@ -476,16 +478,16 @@
             reports.unshift(newReport);
             saveReports(reports);
 
-            // Play Alert Sound on new report
             if (document.getElementById('soundToggle').checked) {
                 playAlertSound();
             }
 
-            // Reset Form & Hide Modal
             e.target.reset();
             const modal = bootstrap.Modal.getInstance(document.getElementById('reportModal'));
             modal.hide();
-            alert("ส่งข้อมูลแจ้งเหตุเรียบร้อยแล้ว!");
+
+            // เรียกใช้ Toast สีส้มแทนการเปิด Alert Pop-up
+            showOrangeToast("บันทึกการแจ้งเหตุเรียบร้อยแล้ว!");
         }
 
         function switchRadar(type) {
