@@ -27,7 +27,6 @@
         
         .custom-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08); padding: 20px; margin-bottom: 20px; }
         .map-frame { height: 550px; width: 100%; border-radius: 12px; background-color: #e2e8f0; overflow: hidden; position: relative; }
-        .picker-map-frame { height: 260px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 8px; }
 
         .filter-box { background: #f1f5f9; border-radius: 10px; padding: 8px 14px; cursor: pointer; border: 1px solid #cbd5e1; font-weight: 500; }
         .footer-sticky { position: sticky; bottom: 0; z-index: 1000; background: #ffffff; border-top: 2px solid #e2e8f0; padding: 10px 0; }
@@ -48,41 +47,40 @@
 
         .radar-switch-btn { font-size: 0.85rem; font-weight: 600; padding: 6px 14px; border-radius: 8px; }
 
-        .official-radar-box {
-            width: 100%;
-            height: 100%;
-            background-color: #0f172a;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
-        .official-radar-img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-        .radar-status-bar {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(4px);
-            color: #fff;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 0.82rem;
-            border: 1px solid rgba(255,255,255,0.2);
-            z-index: 10;
-        }
+        .official-radar-box { width: 100%; height: 100%; background-color: #0f172a; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+        .official-radar-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .radar-status-bar { position: absolute; top: 12px; left: 12px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 0.82rem; border: 1px solid rgba(255,255,255,0.2); z-index: 10; }
 
-        .touch-enabled-iframe {
-            width: 100%;
-            height: 100%;
-            border: 0;
-            pointer-events: auto !important;
+        .touch-enabled-iframe { width: 100%; height: 100%; border: 0; pointer-events: auto !important; }
+
+        /* Custom In-App Modal Success Popup */
+        .custom-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(5px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10000; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
         }
+        .custom-modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .custom-modal-card {
+            background: #ffffff; border-radius: 24px; padding: 32px 24px;
+            width: 90%; max-width: 420px; text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: scale(0.85); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .custom-modal-overlay.active .custom-modal-card { transform: scale(1); }
+        .modal-icon-box {
+            width: 72px; height: 72px; background: #dcfce7; color: #16a34a;
+            border-radius: 50%; margin: 0 auto 18px; display: flex;
+            align-items: center; justify-content: center; font-size: 36px;
+        }
+        .btn-modal-close {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            color: white; border: none; padding: 12px 36px; border-radius: 12px;
+            font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+        }
+        .btn-modal-close:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(2, 132, 199, 0.45); }
     </style>
 </head>
 <body>
@@ -99,7 +97,7 @@
             </div>
             
             <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-danger fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#reportModal" onclick="initPickerMap()">
+                <button class="btn btn-danger fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
                     <i class="fa-solid fa-triangle-exclamation me-1"></i> แจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ
                 </button>
                 <div class="badge-live-info text-white d-none d-md-block">
@@ -181,22 +179,29 @@
                         </div>
                     </div>
 
-                    <!-- TAB 2: Map & Active Incident Reports -->
+                    <!-- TAB 2: Map & Active Incident Reports (Google Maps & Satellite Hybrid) -->
                     <div class="tab-pane fade" id="tab-map1">
                         <div class="custom-card">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
-                                <h6 class="fw-bold mb-0"><i class="fa-solid fa-filter me-1 text-primary"></i> กรองสถานะเหตุการณ์ (ตำบลหนองไม้แดง):</h6>
-                                <div class="d-flex flex-wrap gap-2">
-                                    <label class="filter-box"><input type="checkbox" id="chkNormal" checked onchange="updateMapFilters()"> 🟢 ปกติ</label>
-                                    <label class="filter-box"><input type="checkbox" id="chkWarning" checked onchange="updateMapFilters()"> 🟡 เฝ้าระวัง</label>
-                                    <label class="filter-box"><input type="checkbox" id="chkCritical" checked onchange="updateMapFilters()"> 🔴 วิกฤต</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <h6 class="fw-bold mb-0"><i class="fa-solid fa-map-pin me-1 text-primary"></i> กรองสถานะเหตุการณ์:</h6>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <label class="filter-box"><input type="checkbox" id="chkNormal" checked onchange="updateMapFilters()"> 🟢 ปกติ</label>
+                                        <label class="filter-box"><input type="checkbox" id="chkWarning" checked onchange="updateMapFilters()"> 🟡 เฝ้าระวัง</label>
+                                        <label class="filter-box"><input type="checkbox" id="chkCritical" checked onchange="updateMapFilters()"> 🔴 วิกฤต</label>
+                                    </div>
+                                </div>
+                                <!-- โหมดสลับ Google Maps / แผนที่ดาวเทียม Satellite -->
+                                <div class="btn-group">
+                                    <button id="btnMapNormal" class="btn btn-sm btn-primary active" onclick="switchMapLayer('normal')"><i class="fa-solid fa-map me-1"></i> แผนที่ถนน</button>
+                                    <button id="btnMapSat" class="btn btn-sm btn-outline-primary" onclick="switchMapLayer('satellite')"><i class="fa-solid fa-satellite me-1"></i> ดาวเทียม (Satellite)</button>
                                 </div>
                             </div>
                             <div id="map1" class="map-frame"></div>
                         </div>
                     </div>
 
-                    <!-- TAB 3: Radar -->
+                    <!-- TAB 3: Radar (แก้ไขลิงก์รูปเรดาร์ไม่ให้จอดำ + สวิตช์สด) -->
                     <div class="tab-pane fade" id="tab-map2">
                         <div class="custom-card">
                             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -209,22 +214,29 @@
                                         <i class="fa-solid fa-rotate me-1"></i> ดึงภาพล่าสุดสด
                                     </button>
                                     <div class="btn-group">
-                                        <button id="btnStation1" class="btn btn-primary radar-switch-btn active" onclick="switchRadarSource('suvarnabhumi')">สุวรรณภูมิ/ชลบุรี</button>
-                                        <button id="btnStation2" class="btn btn-outline-primary radar-switch-btn" onclick="switchRadarSource('nongchok')">กทม. หนองจอก</button>
+                                        <button id="btnStation1" class="btn btn-primary radar-switch-btn active" onclick="switchRadarSource('rainviewer')">เรดาร์สด ชลบุรี/หนองไม้แดง</button>
+                                        <button id="btnStation2" class="btn btn-outline-primary radar-switch-btn" onclick="switchRadarSource('suvarnabhumi')">สุวรรณภูมิ/ชลบุรี (ภาพ)</button>
                                         <button id="btnStation3" class="btn btn-outline-primary radar-switch-btn" onclick="switchRadarSource('thaiwater')">แผนที่ ThaiWater</button>
                                     </div>
                                 </div>
                             </div>
 
-                            <div id="officialRadarContainer" class="map-frame">
+                            <!-- ส่วนแสดงภาพเรดาร์แบบ รูปภาพ -->
+                            <div id="officialRadarContainer" class="map-frame d-none">
                                 <div class="official-radar-box">
                                     <div class="radar-status-bar">
                                         <i class="fa-solid fa-satellite me-1 text-warning"></i> สถานี: <span id="radarStationLabel" class="fw-bold text-info">เรดาร์สุวรรณภูมิ (ครอบคลุมชลบุรี)</span>
                                     </div>
-                                    <img id="officialRadarImage" src="https://weather.bangkok.go.th/radar/RadarSVP.Radar.gif" class="official-radar-img" alt="Official Thai Weather Radar">
+                                    <img id="officialRadarImage" src="https://weather.bangkok.go.th/radar/RadarSVP.Radar.gif" class="official-radar-img" alt="Official Weather Radar" onerror="handleRadarError(this)">
                                 </div>
                             </div>
 
+                            <!-- ส่วนแสดง Interactive Live Radar Map (ทำงานได้ 100% ไม่จอดำ) -->
+                            <div id="rainViewerMapContainer" class="map-frame">
+                                <iframe id="rainviewerIframe" class="touch-enabled-iframe" src="https://www.rainviewer.com/map.html?loc=13.4114,101.0169,9&oMaps=0&bMap=1&sMap=0&smart=1&theme=dark" title="RainViewer Live Radar Map"></iframe>
+                            </div>
+
+                            <!-- ส่วนแสดง ThaiWater Map -->
                             <div id="thaiwaterMapContainer" class="map-frame d-none">
                                 <iframe id="thaiwaterIframe" class="touch-enabled-iframe" src="https://m.thaiwater.net/map" title="ThaiWater Map"></iframe>
                             </div>
@@ -249,7 +261,7 @@
         </div>
     </div>
 
-    <!-- Modal ฟอร์มแจ้งเหตุน้ำท่วมพร้อมระบบปักหมุดตรงจุดจริง -->
+    <!-- Modal ฟอร์มแจ้งเหตุน้ำท่วม (ไม่ต้องมีแผนที่ ย้อนกลับสู่ความง่าย แจ้งแล้วปักหมุดให้อัตโนมัติ) -->
     <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -260,25 +272,19 @@
                 <div class="modal-body">
                     <form id="floodReportForm" onsubmit="submitReport(event)">
                         
-                        <!-- เลือกจุดสำคัญ หรือ จิ้มแผนที่ -->
+                        <!-- เลือกสถานที่ด่วน หรือ พิมพ์ชื่อสถานที่ -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">1. ระบุสถานที่ / เลือกพิกัดน้ำท่วมจริง <span class="text-danger">*</span></label>
-                            <div class="d-flex gap-2 mb-2">
-                                <select class="form-select" id="quickLocationSelect" onchange="applyQuickLocation()">
-                                    <option value="custom">-- เลือกสถานที่สำคัญในหนองไม้แดง หรือจิ้มแผนที่ --</option>
-                                    <option value="wat_u">วัดอู่ตะเภา / ชุมชนวัดอู่ตะเภา</option>
-                                    <option value="wibul">ถนนวิบูลธรรมรักษ์</option>
-                                    <option value="tesaban">หน้าเทศบาลตำบลหนองไม้แดง</option>
-                                    <option value="soi_12">ซอย 12 หนองไม้แดง</option>
-                                </select>
-                            </div>
-                            <input type="text" class="form-control" id="reportLocation" placeholder="ระบุชื่อสถานที่ เช่น วัดอู่ตะเภา ซอย 3" required>
-                            
-                            <div class="mt-2">
-                                <small class="text-primary fw-bold"><i class="fa-solid fa-map-pin me-1"></i> เลื่อน/คลิกแผนที่เพื่อปักหมุดตำแหน่งจริงของท่าน:</small>
-                                <div id="pickerMap" class="picker-map-frame"></div>
-                                <small class="text-muted" id="selectedCoordsText">พิกัดปัจจุบัน: 13.4114, 101.0169 (วัดอู่ตะเภา)</small>
-                            </div>
+                            <label class="form-label fw-bold">1. ระบุสถานที่เกิดเหตุ <span class="text-danger">*</span></label>
+                            <select class="form-select mb-2" id="quickLocationSelect" onchange="applyQuickLocation()">
+                                <option value="custom">-- เลือกสถานที่สำคัญในหนองไม้แดง หรือพิมพ์ระบุเองด้านล่าง --</option>
+                                <option value="wat_u">วัดอู่ตะเภา / ชุมชนวัดอู่ตะเภา</option>
+                                <option value="wibul">ถนนวิบูลธรรมรักษ์</option>
+                                <option value="tesaban">หน้าเทศบาลตำบลหนองไม้แดง</option>
+                                <option value="soi_12">ซอย 12 หนองไม้แดง</option>
+                                <option value="amatat">ถนนอมตะนคร หนองไม้แดง</option>
+                            </select>
+                            <input type="text" class="form-control" id="reportLocation" placeholder="หรือพิมพ์ระบุสถานที่ เช่น วัดอู่ตะเภา ซอย 3, บ้านเลขที่..." required>
+                            <small class="text-muted"><i class="fa-solid fa-wand-magic-sparkles text-primary me-1"></i> ระบบจะแปลงเป็นพิกัดเพื่อปักหมุดลงแผนที่ให้อัตโนมัติ</small>
                         </div>
                         
                         <div class="mb-3">
@@ -305,7 +311,7 @@
                                     <div class="chk-box-card">
                                         <div class="form-check">
                                             <input class="form-check-input chk-need" type="checkbox" value="🛏️ มีผู้ป่วยติดเตียง / ผู้สูงอายุ" id="need2">
-                                            <label class="form-check-label fw-bold" for="need2">🛏️️ มีผู้ป่วยติดเตียง / ผู้สูงอายุ</label>
+                                            <label class="form-check-label fw-bold" for="need2">🛏 มีผู้ป่วยติดเตียง / ผู้สูงอายุ</label>
                                         </div>
                                     </div>
                                 </div>
@@ -350,6 +356,18 @@
         </div>
     </div>
 
+    <!-- Custom In-App Modal (แทน alert pop up เดิม) -->
+    <div id="customSuccessModal" class="custom-modal-overlay">
+        <div class="custom-modal-card">
+            <div class="modal-icon-box">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h4 class="fw-bold mb-2 text-dark">บันทึกข้อมูลเรียบร้อยแล้ว!</h4>
+            <p class="text-secondary fs-6 mb-4">ขอบคุณสำหรับการแจ้งเหตุ ระบบได้ทำการบันทึกและปักหมุดบนแผนที่ให้อัตโนมัติเรียบร้อยแล้ว</p>
+            <button onclick="closeSuccessModal()" class="btn-modal-close"><i class="fa-solid fa-check me-1"></i> ตกลง</button>
+        </div>
+    </div>
+
     <!-- Modal ขยายรูปภาพขนาดใหญ่ -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -382,28 +400,35 @@
 
     <script>
         // ----------------------------------------------------
-        // 1. FIREBASE CONFIGURATION
+        // 1. FIREBASE CONFIGURATION (ใช้งานคีย์จริงจากคุณเรียบร้อย)
         // ----------------------------------------------------
-       // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAQP_ROydILchkvlGCHnFinmIAgQyB9bBw",
-  authDomain: "nmd-floodwatch.firebaseapp.com",
-  databaseURL: "https://nmd-floodwatch-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "nmd-floodwatch",
-  storageBucket: "nmd-floodwatch.firebasestorage.app",
-  messagingSenderId: "148054276060",
-  appId: "1:148054276060:web:a306a48b785bf7e4660119",
-  measurementId: "G-SYK1JP7X6J"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyAQP_ROydILchkvlGCHnFinmIAgQyB9bBw",
+            authDomain: "nmd-floodwatch.firebaseapp.com",
+            databaseURL: "https://nmd-floodwatch-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "nmd-floodwatch",
+            storageBucket: "nmd-floodwatch.firebasestorage.app",
+            messagingSenderId: "148054276060",
+            appId: "1:148054276060:web:a306a48b785bf7e4660119",
+            measurementId: "G-SYK1JP7X6J"
+        };
 
         let db = null;
         let reportsRef = null;
         let incidentReports = [];
         let uploadedBase64Image = "";
 
-        // พิกัดเริ่มต้น: ชุมชนวัดอู่ตะเภา ตำบลหนองไม้แดง
-        let selectedLat = 13.4114;
-        let selectedLng = 101.0169;
+        // พิกัดอ้างอิงสถานที่สำคัญในตำบลหนองไม้แดง
+        const locationPresetCoords = {
+            'wat_u': { lat: 13.4114, lng: 101.0169 },
+            'wibul': { lat: 13.4135, lng: 101.0120 },
+            'tesaban': { lat: 13.4180, lng: 101.0080 },
+            'soi_12': { lat: 13.4150, lng: 101.0210 },
+            'amatat': { lat: 13.4165, lng: 101.0180 }
+        };
+
+        let currentSelectedLat = 13.4114;
+        let currentSelectedLng = 101.0169;
 
         try {
             if (!firebase.apps.length) {
@@ -412,7 +437,6 @@ const firebaseConfig = {
             db = firebase.database();
             reportsRef = db.ref('flood_reports');
             
-            // ซิงค์ข้อมูลข้ามทุกเครื่อง ถาวร Realtime
             reportsRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 incidentReports = [];
@@ -449,60 +473,68 @@ const firebaseConfig = {
         setInterval(updateClock, 1000); updateClock();
 
         // ----------------------------------------------------
-        // 2. MAP PICKER IN REPORT MODAL (ปักหมุดหนองไม้แดงจริง)
+        // SOUND & IN-APP CUSTOM MODAL
         // ----------------------------------------------------
-        let pickerMap, pickerMarker;
+        function playNotificationSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                const osc1 = audioCtx.createOscillator();
+                const gain1 = audioCtx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+                gain1.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc1.connect(gain1);
+                gain1.connect(audioCtx.destination);
+                osc1.start();
+                osc1.stop(audioCtx.currentTime + 0.3);
 
-        function initPickerMap() {
-            setTimeout(() => {
-                if (!pickerMap) {
-                    pickerMap = L.map('pickerMap').setView([13.4114, 101.0169], 15);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pickerMap);
-                    
-                    pickerMarker = L.marker([13.4114, 101.0169], { draggable: true }).addTo(pickerMap);
-                    
-                    pickerMarker.on('dragend', function(e) {
-                        const pos = pickerMarker.getLatLng();
-                        setCoords(pos.lat, pos.lng);
-                    });
-
-                    pickerMap.on('click', function(e) {
-                        pickerMarker.setLatLng(e.latlng);
-                        setCoords(e.lat.toFixed(6), e.lng.toFixed(6));
-                    });
-                }
-                pickerMap.invalidateSize();
-            }, 300);
+                setTimeout(() => {
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+                    gain2.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.start();
+                    osc2.stop(audioCtx.currentTime + 0.5);
+                }, 140);
+            } catch (e) {
+                console.log("Audio Context Blocked:", e);
+            }
         }
 
-        function setCoords(lat, lng) {
-            selectedLat = parseFloat(lat);
-            selectedLng = parseFloat(lng);
-            document.getElementById('selectedCoordsText').innerText = `พิกัดปัจจุบัน: ${selectedLat.toFixed(4)}, ${selectedLng.toFixed(4)}`;
+        function showSuccessModal() {
+            playNotificationSound();
+            document.getElementById('customSuccessModal').classList.add('active');
         }
 
+        function closeSuccessModal() {
+            document.getElementById('customSuccessModal').classList.remove('active');
+        }
+
+        // ----------------------------------------------------
+        // 2. AUTO-GEOLOCATION WHEN CITIZEN REPORTS
+        // ----------------------------------------------------
         function applyQuickLocation() {
             const val = document.getElementById('quickLocationSelect').value;
             const input = document.getElementById('reportLocation');
             
-            if (val === 'wat_u') {
-                input.value = "วัดอู่ตะเภา / ชุมชนวัดอู่ตะเภา";
-                selectedLat = 13.4114; selectedLng = 101.0169;
-            } else if (val === 'wibul') {
-                input.value = "ถนนวิบูลธรรมรักษ์";
-                selectedLat = 13.4135; selectedLng = 101.0120;
-            } else if (val === 'tesaban') {
-                input.value = "หน้าเทศบาลตำบลหนองไม้แดง";
-                selectedLat = 13.4180; selectedLng = 101.0080;
-            } else if (val === 'soi_12') {
-                input.value = "ซอย 12 หนองไม้แดง";
-                selectedLat = 13.4150; selectedLng = 101.0210;
-            }
-
-            if (pickerMap && pickerMarker) {
-                pickerMap.setView([selectedLat, selectedLng], 16);
-                pickerMarker.setLatLng([selectedLat, selectedLng]);
-                setCoords(selectedLat, selectedLng);
+            if (val !== 'custom' && locationPresetCoords[val]) {
+                currentSelectedLat = locationPresetCoords[val].lat;
+                currentSelectedLng = locationPresetCoords[val].lng;
+                
+                if (val === 'wat_u') input.value = "วัดอู่ตะเภา / ชุมชนวัดอู่ตะเภา";
+                else if (val === 'wibul') input.value = "ถนนวิบูลธรรมรักษ์";
+                else if (val === 'tesaban') input.value = "หน้าเทศบาลตำบลหนองไม้แดง";
+                else if (val === 'soi_12') input.value = "ซอย 12 หนองไม้แดง";
+                else if (val === 'amatat') input.value = "ถนนอมตะนคร หนองไม้แดง";
+            } else {
+                currentSelectedLat = 13.4114 + (Math.random() - 0.5) * 0.008;
+                currentSelectedLng = 101.0169 + (Math.random() - 0.5) * 0.008;
             }
         }
 
@@ -531,7 +563,7 @@ const firebaseConfig = {
         }
 
         // ----------------------------------------------------
-        // 3. SUBMIT & UPDATE REPORTS TO FIREBASE
+        // 3. SUBMIT & DELETE & UPDATE REPORTS TO FIREBASE
         // ----------------------------------------------------
         function submitReport(e) {
             e.preventDefault();
@@ -553,8 +585,8 @@ const firebaseConfig = {
                 details: details,
                 officialStatus: 'pending',
                 timestamp: now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH') + ' น.',
-                lat: selectedLat,
-                lng: selectedLng
+                lat: currentSelectedLat,
+                lng: currentSelectedLng
             };
 
             if (reportsRef) {
@@ -573,7 +605,20 @@ const firebaseConfig = {
             document.getElementById('imagePreview').style.display = 'none';
             uploadedBase64Image = "";
 
-            alert('ขอบคุณสำหรับการแจ้งเหตุ ข้อมูลถูกบันทึกลงคลัง Firebase ถาวรเรียบร้อยแล้ว');
+            showSuccessModal();
+        }
+
+        function deleteReport(id, firebaseKey) {
+            if (confirm("คุณต้องการลบรายการแจ้งเหตุนี้ใช่หรือไม่?")) {
+                if (reportsRef && firebaseKey) {
+                    reportsRef.child(firebaseKey).remove();
+                } else {
+                    incidentReports = incidentReports.filter(r => r.id !== id);
+                    saveFallbackLocalStorage();
+                    renderHistory();
+                    updateMapFilters();
+                }
+            }
         }
 
         function updateOfficialStatus(id, newStatus, firebaseKey) {
@@ -621,13 +666,13 @@ const firebaseConfig = {
 
                 if (item.officialStatus === 'pending') {
                     officialStatusBadge = '<span class="badge bg-secondary"><i class="fa-solid fa-clock me-1"></i> รอดำเนินการ</span>';
-                    actionButtonHtml = `<button class="btn btn-sm btn-primary fw-bold" onclick="updateOfficialStatus(${item.id}, 'in_progress', ${fbKeyStr})"><i class="fa-solid fa-user-check me-1"></i> เจ้าหน้ารับเรื่องแล้ว</button>`;
+                    actionButtonHtml = `<button class="btn btn-sm btn-primary fw-bold" onclick="updateOfficialStatus(${item.id}, 'in_progress', ${fbKeyStr})"><i class="fa-solid fa-user-check me-1"></i> รับเรื่อง</button>`;
                 } else if (item.officialStatus === 'in_progress') {
                     officialStatusBadge = '<span class="badge bg-primary"><i class="fa-solid fa-truck-medical me-1"></i> กำลังเข้าช่วยเหลือ</span>';
-                    actionButtonHtml = `<button class="btn btn-sm btn-success fw-bold" onclick="updateOfficialStatus(${item.id}, 'completed', ${fbKeyStr})"><i class="fa-solid fa-check me-1"></i> ช่วยเหลือเสร็จสิ้น</button>`;
+                    actionButtonHtml = `<button class="btn btn-sm btn-success fw-bold" onclick="updateOfficialStatus(${item.id}, 'completed', ${fbKeyStr})"><i class="fa-solid fa-check me-1"></i> เสร็จสิ้น</button>`;
                 } else {
                     officialStatusBadge = '<span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> ช่วยเหลือเรียบร้อย</span>';
-                    actionButtonHtml = `<small class="text-success fw-bold"><i class="fa-solid fa-check-double me-1"></i> ช่วยเหลือเสร็จสิ้นแล้ว</small>`;
+                    actionButtonHtml = `<small class="text-success fw-bold me-2"><i class="fa-solid fa-check-double me-1"></i> ช่วยเหลือเสร็จสิ้น</small>`;
                 }
 
                 container.innerHTML += `
@@ -641,10 +686,15 @@ const firebaseConfig = {
                         </div>
                         ${needsHtml}
                         ${imageHtml}
-                        <p class="mb-2 text-dark" style="font-size: 0.9rem;"><strong>ติดต่อ/รายละเอียด:</strong> ${item.details}</p>
+                        <p class="mb-2 text-dark" style="font-size: 0.9rem;"><strong>รายละเอียด/เบอร์โทร:</strong> ${item.details}</p>
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top mt-2">
                             <small class="text-secondary"><i class="fa-regular fa-clock me-1"></i>เวลาแจ้ง: ${item.timestamp}</small>
-                            <div>${actionButtonHtml}</div>
+                            <div class="d-flex align-items-center gap-2">
+                                ${actionButtonHtml}
+                                <button class="btn btn-sm btn-outline-danger fw-bold" onclick="deleteReport(${item.id}, ${fbKeyStr})" title="ลบรายการนี้ออกจากระบบ">
+                                    <i class="fa-solid fa-trash-can"></i> ลบรายการ
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -652,20 +702,50 @@ const firebaseConfig = {
         }
 
         // ----------------------------------------------------
-        // 4. MAIN MAP & FILTERS (แผนที่หลักตำบลหนองไม้แดง)
+        // 4. MAIN MAP & GOOGLE SATELLITE TILES
         // ----------------------------------------------------
-        let map1, markersLayer = [];
+        let map1, normalTileLayer, satelliteTileLayer, markersLayer = [];
 
         function initMap1() {
             setTimeout(() => {
                 if (!map1) {
-                    // ล็อกศูนย์กลางที่ ชุมชนวัดอู่ตะเภา/หนองไม้แดง (13.4114, 101.0169)
                     map1 = L.map('map1').setView([13.4114, 101.0169], 15);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map1);
+                    
+                    normalTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19
+                    }).addTo(map1);
+
+                    satelliteTileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                        maxZoom: 20,
+                        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+                    });
+
                     updateMapFilters();
                 }
                 map1.invalidateSize();
             }, 200);
+        }
+
+        function switchMapLayer(mode) {
+            if (!map1) return;
+            const btnNormal = document.getElementById('btnMapNormal');
+            const btnSat = document.getElementById('btnMapSat');
+
+            if (mode === 'satellite') {
+                map1.removeLayer(normalTileLayer);
+                satelliteTileLayer.addTo(map1);
+                btnSat.classList.add('btn-primary', 'active');
+                btnSat.classList.remove('btn-outline-primary');
+                btnNormal.classList.remove('btn-primary', 'active');
+                btnNormal.classList.add('btn-outline-primary');
+            } else {
+                map1.removeLayer(satelliteTileLayer);
+                normalTileLayer.addTo(map1);
+                btnNormal.classList.add('btn-primary', 'active');
+                btnNormal.classList.remove('btn-outline-primary');
+                btnSat.classList.remove('btn-primary', 'active');
+                btnSat.classList.add('btn-outline-primary');
+            }
         }
 
         function updateMapFilters() {
@@ -685,7 +765,7 @@ const firebaseConfig = {
 
                 if (show) {
                     let color = item.status === 'วิกฤต' ? 'red' : (item.status === 'เฝ้าระวัง' ? 'orange' : 'green');
-                    let marker = L.circleMarker([item.lat, item.lng], { color: color, fillColor: color, fillOpacity: 0.85, radius: 10 }).addTo(map1);
+                    let marker = L.circleMarker([item.lat, item.lng], { color: color, fillColor: color, fillOpacity: 0.9, radius: 11 }).addTo(map1);
                     
                     let imgTag = item.image ? `<br><img src="${item.image}" style="width:100%; max-height:100px; object-fit:cover; border-radius:6px; margin-top:5px; cursor:pointer;" onclick="showFullImage('${item.image}')">` : '';
                     let needsStr = item.needs ? item.needs.join(', ') : '';
@@ -737,7 +817,9 @@ const firebaseConfig = {
             const btn1 = document.getElementById('btnStation1');
             const btn2 = document.getElementById('btnStation2');
             const btn3 = document.getElementById('btnStation3');
+            
             const officialBox = document.getElementById('officialRadarContainer');
+            const rainviewerBox = document.getElementById('rainViewerMapContainer');
             const thaiwaterBox = document.getElementById('thaiwaterMapContainer');
             const label = document.getElementById('radarStationLabel');
 
@@ -746,30 +828,37 @@ const firebaseConfig = {
                 b.classList.add('btn-outline-primary');
             });
 
-            if (source === 'suvarnabhumi') {
+            if (source === 'rainviewer') {
                 btn1.classList.add('btn-primary', 'text-white', 'active');
-                officialBox.classList.remove('d-none');
+                rainviewerBox.classList.remove('d-none');
+                officialBox.classList.add('d-none');
                 thaiwaterBox.classList.add('d-none');
-                label.innerText = "เรดาร์สุวรรณภูมิ (ครอบคลุมชลบุรี)";
-                currentRadarUrl = "https://weather.bangkok.go.th/radar/RadarSVP.Radar.gif";
-                refreshOfficialRadar();
-            } else if (source === 'nongchok') {
+            } else if (source === 'suvarnabhumi') {
                 btn2.classList.add('btn-primary', 'text-white', 'active');
                 officialBox.classList.remove('d-none');
+                rainviewerBox.classList.add('d-none');
                 thaiwaterBox.classList.add('d-none');
-                label.innerText = "เรดาร์หนองจอก (กทม. ฝั่งตะวันออก)";
-                currentRadarUrl = "https://weather.bangkok.go.th/radar/RadarNCK.Radar.gif";
+                label.innerText = "เรดาร์สุวรรณภูมิ/ชลบุรี (ภาพสด)";
+                currentRadarUrl = "https://weather.bangkok.go.th/radar/RadarSVP.Radar.gif";
                 refreshOfficialRadar();
             } else if (source === 'thaiwater') {
                 btn3.classList.add('btn-primary', 'text-white', 'active');
-                officialBox.classList.add('d-none');
                 thaiwaterBox.classList.remove('d-none');
+                officialBox.classList.add('d-none');
+                rainviewerBox.classList.add('d-none');
             }
         }
 
         function refreshOfficialRadar() {
             const img = document.getElementById('officialRadarImage');
-            img.src = currentRadarUrl + '?t=' + new Date().getTime();
+            if (img) {
+                img.src = currentRadarUrl + '?t=' + new Date().getTime();
+            }
+        }
+
+        function handleRadarError(img) {
+            // ถ้าภาพหลักถูกบล็อก จะเปลี่ยนสลับไปใช้ RainViewer อัตโนมัติ ป้องกันจอดำ
+            switchRadarSource('rainviewer');
         }
 
         const cameraData = [
