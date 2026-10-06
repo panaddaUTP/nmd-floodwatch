@@ -27,6 +27,8 @@
         
         .cctv-video-container { position: relative; width: 100%; height: 500px; border-radius: 12px; overflow: hidden; background: #000; }
         .cctv-iframe { width: 100%; height: 100%; border: 0; }
+        
+        .need-chip { display: inline-block; background-color: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; margin-right: 4px; margin-bottom: 4px; }
     </style>
 </head>
 <body>
@@ -179,12 +181,12 @@
         </div>
     </div>
 
-    <!-- Modal Form -->
+    <!-- Modal Form (มีตัวเลือกความช่วยเหลือเพิ่มเติม) -->
     <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>แจ้งเหตุน้ำท่วมขัง</h5>
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>แจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -201,7 +203,7 @@
                                 <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="getGPSLocation()">
                                     <i class="fa-solid fa-location-arrow me-1"></i> ดึงพิกัด GPS
                                 </button>
-                                <span id="gpsStatus" class="small text-muted">ยังไม่ได้ดึงพิกัด (จะใช้พิกัดกลางหนองไม้แดงเป็นค่าเริ่มต้น)</span>
+                                <span id="gpsStatus" class="small text-muted">ยังไม่ได้ดึงพิกัด (จะใช้พิกัดกลางหนองไม้แดง)</span>
                             </div>
                         </div>
 
@@ -214,9 +216,46 @@
                             </select>
                         </div>
 
+                        <!-- Checkboxes ความช่วยเหลือที่ต้องการ -->
+                        <div class="mb-3 p-3 border rounded-3 bg-white">
+                            <label class="form-label fw-bold text-danger mb-2"><i class="fa-solid fa-hand-holding-hand me-1"></i>ความช่วยเหลือที่ต้องการ (เลือกได้หลายข้อ):</label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input need-option" type="checkbox" value="🚨 ต้องการอพยพด่วน" id="need1">
+                                        <label class="form-check-label small fw-bold" for="need1">🚨 อพยพด่วน</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input need-option" type="checkbox" value="🍱 อาหาร / น้ำดื่ม" id="need2">
+                                        <label class="form-check-label small fw-bold" for="need2">🍱 อาหาร / น้ำดื่ม</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input need-option" type="checkbox" value="🚑 หน่วยแพทย์ / ยา" id="need3">
+                                        <label class="form-check-label small fw-bold" for="need3">🚑 หน่วยแพทย์ / ยา</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input need-option" type="checkbox" value="♿ ผู้ป่วยติดเตียง / คนชรา" id="need4">
+                                        <label class="form-check-label small fw-bold" for="need4">♿ ผู้ป่วยติดเตียง</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input need-option" type="checkbox" value="⚡ กระสอบทราย / ตัดไฟ" id="need5">
+                                        <label class="form-check-label small fw-bold" for="need5">⚡ กระสอบทราย/ตัดไฟ</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label fw-bold">รายละเอียดเพิ่มเติม / เบอร์ติดต่อ</label>
-                            <textarea class="form-control" id="inputDetails" rows="2" placeholder="ระบุรายละเอียดและเบอร์โทรศัพท์สำหรับติดต่อกลับ" required></textarea>
+                            <textarea class="form-control" id="inputDetails" rows="2" placeholder="ระบุรายละเอียดเพิ่มเติม และเบอร์โทรศัพท์สำหรับติดต่อกลับ" required></textarea>
                         </div>
 
                         <div class="text-end">
@@ -237,7 +276,6 @@
         let currentLat = 13.4114;
         let currentLng = 101.0169;
         let map, markersGroup = [];
-        let previousReportCount = 0;
 
         // Web Audio API for Alert Sound
         function playAlertSound() {
@@ -333,7 +371,9 @@
                 if (show) {
                     let color = item.status === 'วิกฤต' ? 'red' : (item.status === 'เฝ้าระวัง' ? 'orange' : 'green');
                     let marker = L.circleMarker([item.lat, item.lng], { color: color, fillColor: color, fillOpacity: 0.85, radius: 10 }).addTo(map);
-                    marker.bindPopup(`<b>${item.location}</b><br>ระดับ: <strong>${item.status}</strong><br>การดำเนินงาน: <strong>${item.actionStatus || 'รอดำเนินการ'}</strong><br><small>${item.details}</small>`);
+                    
+                    let needsHtml = item.needs && item.needs.length > 0 ? `<br>ต้องการ: ${item.needs.join(', ')}` : '';
+                    marker.bindPopup(`<b>${item.location}</b><br>ระดับ: <strong>${item.status}</strong>${needsHtml}<br>การดำเนินงาน: <strong>${item.actionStatus || 'รอดำเนินการ'}</strong><br><small>${item.details}</small>`);
                     markersGroup.push(marker);
                 }
             });
@@ -345,7 +385,7 @@
             document.getElementById('totalCountBadge').innerText = `${reports.length} รายการ`;
 
             if (reports.length === 0) {
-                container.innerHTML = `<div class="text-center py-5 text-muted"><i class="fa-solid fa-inbox fs-1 mb-2 d-block"></i>ยังไม่มีรายการแจ้งเหตุในขณะนี้</div>`;
+                container.innerHTML = `<div class="text-center py-5 text-muted"><i class="fa-solid fa-inbox fs-1 mb-2 d-block"></i>ยังไม่มีรายการแจ้งเหตุในขณะนี้ (พร้อมรับข้อมูลใหม่)</div>`;
                 return;
             }
 
@@ -353,6 +393,11 @@
             reports.forEach((item, index) => {
                 let badgeClass = item.status === 'วิกฤต' ? 'bg-danger' : (item.status === 'เฝ้าระวัง' ? 'bg-warning text-dark' : 'bg-success');
                 let currentAction = item.actionStatus || 'รอดำเนินการ';
+
+                let needsChips = '';
+                if (item.needs && item.needs.length > 0) {
+                    needsChips = item.needs.map(n => `<span class="need-chip">${n}</span>`).join('');
+                }
 
                 container.innerHTML += `
                     <div class="list-group-item p-3">
@@ -365,6 +410,9 @@
                                 <i class="fa-solid fa-trash-can"></i> ลบ
                             </button>
                         </div>
+                        
+                        ${needsChips ? `<div class="mb-2">${needsChips}</div>` : ''}
+
                         <p class="mb-2 text-secondary" style="font-size: 0.9rem;">${item.details}</p>
                         
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top">
@@ -408,10 +456,15 @@
             const status = document.getElementById('inputStatus').value;
             const details = document.getElementById('inputDetails').value;
 
+            // Collect checked needs
+            const needCheckboxes = document.querySelectorAll('.need-option:checked');
+            const selectedNeeds = Array.from(needCheckboxes).map(cb => cb.value);
+
             const newReport = {
                 id: Date.now(),
                 location: locationText,
                 status: status,
+                needs: selectedNeeds,
                 details: details,
                 actionStatus: '⏳ รอดำเนินการ',
                 timestamp: new Date().toLocaleString('th-TH'),
@@ -428,9 +481,11 @@
                 playAlertSound();
             }
 
+            // Reset Form & Hide Modal
+            e.target.reset();
             const modal = bootstrap.Modal.getInstance(document.getElementById('reportModal'));
             modal.hide();
-            alert("บันทึกการแจ้งเหตุเรียบร้อยแล้ว!");
+            alert("ส่งข้อมูลแจ้งเหตุเรียบร้อยแล้ว!");
         }
 
         function switchRadar(type) {
