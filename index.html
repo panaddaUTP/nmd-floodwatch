@@ -99,4 +99,709 @@
             </div>
             
             <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-danger fw-bold shadow-sm" data-bs-toggle="modal" data-bs-
+                <button class="btn btn-danger fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#reportModal" onclick="initPickerMap()">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> แจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ
+                </button>
+                <div class="badge-live-info text-white d-none d-md-block">
+                    <i class="fa-regular fa-clock me-1 text-warning"></i><span id="liveClockText">--:--:--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid px-4">
+        
+        <!-- ThaiWater Real-Time Canal Water Level -->
+        <div class="custom-card mb-3 py-3">
+            <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-water me-2"></i>ระดับน้ำในพื้นที่/คลองสำคัญ (ข้อมูลจริง คลังน้ำแห่งชาติ ThaiWater)</h6>
+            <div class="row g-3" id="waterLevelContainer">
+                <div class="col-12 text-center text-muted py-2"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังเชื่อมต่อสถานีวัดระดับน้ำจริง...</div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <!-- Sidebar Navigation -->
+            <div class="col-lg-3 col-md-4">
+                <div class="custom-card p-3">
+                    <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.8rem;">เมนูบริการ</h6>
+                    <div class="nav flex-column nav-pills" role="tablist">
+                        <button class="nav-link active" id="btn-tab1" data-bs-toggle="pill" data-bs-target="#tab-cctv">
+                            <i class="fa-solid fa-video me-2 text-danger"></i> 1. กล้อง CCTV จราจรและจุดเฝ้าระวัง
+                        </button>
+                        <button class="nav-link" id="btn-tab2" data-bs-toggle="pill" data-bs-target="#tab-map1" onclick="initMap1()">
+                            <i class="fa-solid fa-map-location-dot me-2"></i> 2. แผนที่จุดแจ้งเหตุ & จุดเสี่ยง (หนองไม้แดง)
+                        </button>
+                        <button class="nav-link" id="btn-tab3" data-bs-toggle="pill" data-bs-target="#tab-map2">
+                            <i class="fa-solid fa-cloud-showers-water me-2 text-info"></i> 3. เรดาร์ตรวจจับฝน (ทางการ 100%)
+                        </button>
+                        <button class="nav-link" id="btn-tab4" data-bs-toggle="pill" data-bs-target="#tab-history" onclick="renderHistory()">
+                            <i class="fa-solid fa-list-check me-2 text-primary"></i> 4. รายการแจ้งเหตุ (เจ้าหน้าที่รับเรื่อง)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="col-lg-9 col-md-8">
+                <div class="tab-content">
+                    
+                    <!-- TAB 1: CCTV Stream -->
+                    <div class="tab-pane fade show active" id="tab-cctv">
+                        <div class="custom-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-video text-danger me-2"></i>ระบบถ่ายทอดสดกล้อง CCTV จราจรเฝ้าระวังน้ำท่วม</h5>
+                                    <small class="text-muted">เลือกจุดกล้องที่ต้องการรับชมสัญญาณสดได้จากเมนูด้านล่าง</small>
+                                </div>
+                                <a href="https://cctv.dhr.go.th/" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fa-solid fa-up-right-from-square me-1"></i> เปิดเว็บเต็มระบบ cctv.dhr.go.th
+                                </a>
+                            </div>
+
+                            <div class="mb-3">
+                                <small class="fw-bold text-secondary d-block mb-2"><i class="fa-solid fa-hand-pointer me-1 text-primary"></i> เลือกมุมมอง / ตำแหน่งกล้อง:</small>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button id="cam-btn-0" class="btn btn-outline-secondary cam-btn active" onclick="selectCamera(0)"><i class="fa-solid fa-table-cells-large me-1"></i> แสดงผลทุกกล้อง (ระบบรวม)</button>
+                                    <button id="cam-btn-1" class="btn btn-outline-primary cam-btn" onclick="selectCamera(1)"><i class="fa-solid fa-camera me-1"></i> 1. สี่แยกดอนหัวฬ่อ (ขาเข้า)</button>
+                                    <button id="cam-btn-2" class="btn btn-outline-primary cam-btn" onclick="selectCamera(2)"><i class="fa-solid fa-camera me-1"></i> 2. สี่แยกดอนหัวฬ่อ (ขาออก)</button>
+                                    <button id="cam-btn-3" class="btn btn-outline-primary cam-btn" onclick="selectCamera(3)"><i class="fa-solid fa-camera me-1"></i> 3. หน้าสถานีดับเพลิงดอนหัวฬ่อ</button>
+                                    <button id="cam-btn-4" class="btn btn-outline-primary cam-btn" onclick="selectCamera(4)"><i class="fa-solid fa-camera me-1"></i> 4. ถนนสัตตพงษ์ - ดอนหัวฬ่อ</button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <small class="fw-bold text-danger"><i class="fa-solid fa-circle-play me-1"></i> จอแสดงผลภาพสด: <span id="currentCamName" class="text-dark">ระบบรวมทุกกล้องสด</span></small>
+                                    <span class="badge bg-danger">LIVE</span>
+                                </div>
+                                <div class="cctv-video-container">
+                                    <iframe id="cctvIframe" src="https://cctv.dhr.go.th/" class="cctv-iframe" title="CCTV Live Feed"></iframe>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: Map & Active Incident Reports -->
+                    <div class="tab-pane fade" id="tab-map1">
+                        <div class="custom-card">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
+                                <h6 class="fw-bold mb-0"><i class="fa-solid fa-filter me-1 text-primary"></i> กรองสถานะเหตุการณ์ (ตำบลหนองไม้แดง):</h6>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <label class="filter-box"><input type="checkbox" id="chkNormal" checked onchange="updateMapFilters()"> 🟢 ปกติ</label>
+                                    <label class="filter-box"><input type="checkbox" id="chkWarning" checked onchange="updateMapFilters()"> 🟡 เฝ้าระวัง</label>
+                                    <label class="filter-box"><input type="checkbox" id="chkCritical" checked onchange="updateMapFilters()"> 🔴 วิกฤต</label>
+                                </div>
+                            </div>
+                            <div id="map1" class="map-frame"></div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: Radar -->
+                    <div class="tab-pane fade" id="tab-map2">
+                        <div class="custom-card">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                <div>
+                                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-satellite-dish text-primary me-2"></i>เรดาร์ตรวจจับฝนสด (ข้อมูลภาครัฐ 100%)</h5>
+                                    <small class="text-muted">แม่นยำที่สุดสำหรับพื้นที่ชลบุรี/หนองไม้แดง/วัดอู่ตะเภา</small>
+                                </div>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button class="btn btn-sm btn-outline-primary fw-bold" onclick="refreshOfficialRadar()">
+                                        <i class="fa-solid fa-rotate me-1"></i> ดึงภาพล่าสุดสด
+                                    </button>
+                                    <div class="btn-group">
+                                        <button id="btnStation1" class="btn btn-primary radar-switch-btn active" onclick="switchRadarSource('suvarnabhumi')">สุวรรณภูมิ/ชลบุรี</button>
+                                        <button id="btnStation2" class="btn btn-outline-primary radar-switch-btn" onclick="switchRadarSource('nongchok')">กทม. หนองจอก</button>
+                                        <button id="btnStation3" class="btn btn-outline-primary radar-switch-btn" onclick="switchRadarSource('thaiwater')">แผนที่ ThaiWater</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="officialRadarContainer" class="map-frame">
+                                <div class="official-radar-box">
+                                    <div class="radar-status-bar">
+                                        <i class="fa-solid fa-satellite me-1 text-warning"></i> สถานี: <span id="radarStationLabel" class="fw-bold text-info">เรดาร์สุวรรณภูมิ (ครอบคลุมชลบุรี)</span>
+                                    </div>
+                                    <img id="officialRadarImage" src="https://weather.bangkok.go.th/radar/RadarSVP.Radar.gif" class="official-radar-img" alt="Official Thai Weather Radar">
+                                </div>
+                            </div>
+
+                            <div id="thaiwaterMapContainer" class="map-frame d-none">
+                                <iframe id="thaiwaterIframe" class="touch-enabled-iframe" src="https://m.thaiwater.net/map" title="ThaiWater Map"></iframe>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: Citizens Incident History List -->
+                    <div class="tab-pane fade" id="tab-history">
+                        <div class="custom-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold mb-0"><i class="fa-solid fa-list-check me-2 text-primary"></i>รายการรับแจ้งเหตุจากประชาชน (ซิงค์ Firebase ถาวร)</h5>
+                                <span class="badge bg-secondary" id="totalReportBadge">0 รายการ</span>
+                            </div>
+                            <div id="citizenReportsContainer" class="list-group list-group-flush border rounded-3">
+                                <div class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังเชื่อมต่อคลังข้อมูล Firebase...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal ฟอร์มแจ้งเหตุน้ำท่วมพร้อมระบบปักหมุดตรงจุดจริง -->
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>แบบฟอร์มแจ้งเหตุน้ำท่วมขัง / ขอความช่วยเหลือ</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="floodReportForm" onsubmit="submitReport(event)">
+                        
+                        <!-- เลือกจุดสำคัญ หรือ จิ้มแผนที่ -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">1. ระบุสถานที่ / เลือกพิกัดน้ำท่วมจริง <span class="text-danger">*</span></label>
+                            <div class="d-flex gap-2 mb-2">
+                                <select class="form-select" id="quickLocationSelect" onchange="applyQuickLocation()">
+                                    <option value="custom">-- เลือกสถานที่สำคัญในหนองไม้แดง หรือจิ้มแผนที่ --</option>
+                                    <option value="wat_u">วัดอู่ตะเภา / ชุมชนวัดอู่ตะเภา</option>
+                                    <option value="wibul">ถนนวิบูลธรรมรักษ์</option>
+                                    <option value="tesaban">หน้าเทศบาลตำบลหนองไม้แดง</option>
+                                    <option value="soi_12">ซอย 12 หนองไม้แดง</option>
+                                </select>
+                            </div>
+                            <input type="text" class="form-control" id="reportLocation" placeholder="ระบุชื่อสถานที่ เช่น วัดอู่ตะเภา ซอย 3" required>
+                            
+                            <div class="mt-2">
+                                <small class="text-primary fw-bold"><i class="fa-solid fa-map-pin me-1"></i> เลื่อน/คลิกแผนที่เพื่อปักหมุดตำแหน่งจริงของท่าน:</small>
+                                <div id="pickerMap" class="picker-map-frame"></div>
+                                <small class="text-muted" id="selectedCoordsText">พิกัดปัจจุบัน: 13.4114, 101.0169 (วัดอู่ตะเภา)</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">2. ระดับความรุนแรง / ความสูงของน้ำ <span class="text-danger">*</span></label>
+                            <select class="form-select" id="reportStatus" required>
+                                <option value="เฝ้าระวัง">🟡 เฝ้าระวัง (น้ำรอการระบาย 5-15 ซม.)</option>
+                                <option value="วิกฤต">🔴 วิกฤต (น้ำท่วมขังสูง 20 ซม. ขึ้นไป รถเล็กผ่านลำบาก)</option>
+                                <option value="ปกติ">🟢 ปกติ (น้ำแห้งแล้ว)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-danger"><i class="fa-solid fa-hand-holding-hand me-1"></i> 3. ความต้องการความช่วยเหลือด่วน (ถ้ามี)</label>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <div class="chk-box-card">
+                                        <div class="form-check">
+                                            <input class="form-check-input chk-need" type="checkbox" value="🚨 ต้องการอพยพด่วน" id="need1">
+                                            <label class="form-check-label fw-bold text-danger" for="need1">🚨 ต้องการอพยพด่วน</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="chk-box-card">
+                                        <div class="form-check">
+                                            <input class="form-check-input chk-need" type="checkbox" value="🛏️ มีผู้ป่วยติดเตียง / ผู้สูงอายุ" id="need2">
+                                            <label class="form-check-label fw-bold" for="need2">🛏️️ มีผู้ป่วยติดเตียง / ผู้สูงอายุ</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="chk-box-card">
+                                        <div class="form-check">
+                                            <input class="form-check-input chk-need" type="checkbox" value="🍱 ต้องการอาหาร / น้ำดื่ม" id="need3">
+                                            <label class="form-check-label fw-bold" for="need3">🍱 ต้องการอาหาร / น้ำดื่ม</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="chk-box-card">
+                                        <div class="form-check">
+                                            <input class="form-check-input chk-need" type="checkbox" value="💊 ต้องการยา / เวชภัณฑ์" id="need4">
+                                            <label class="form-check-label fw-bold" for="need4">💊 ต้องการยา / เวชภัณฑ์</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="fa-solid fa-camera me-1 text-primary"></i> 4. แนบรูปถ่ายสถานการณ์น้ำท่วม (ถ้ามี)</label>
+                            <input type="file" class="form-control" id="reportImage" accept="image/*" onchange="previewUploadImage(event)">
+                            <div class="mt-2 text-center">
+                                <img id="imagePreview" src="" alt="Image Preview" class="img-preview-box">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">5. รายละเอียดเพิ่มเติม / เบอร์โทรติดต่อ <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="reportDetails" rows="2" placeholder="ระบุเบอร์โทรศัพท์สำหรับให้เจ้าหน้าที่ติดต่อกลับ" required></textarea>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" id="btnSubmitReport" class="btn btn-danger fw-bold"><i class="fa-solid fa-paper-plane me-1"></i> ส่งข้อมูลแจ้งเหตุ</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal ขยายรูปภาพขนาดใหญ่ -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-dark">
+                <div class="modal-header border-0">
+                    <h6 class="modal-title text-white"><i class="fa-regular fa-image me-1"></i> รูปถ่ายสถานที่แจ้งเหตุ</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-0 pb-3">
+                    <img id="modalFullImage" src="" class="img-fluid rounded" style="max-height: 80vh;" alt="Full Image">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Emergency Contacts -->
+    <div class="footer-sticky mt-4">
+        <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div><small class="fw-bold text-muted">ศูนย์ ปภ. เทศบาลตำบลหนองไม้แดง</small></div>
+            <div class="d-flex gap-2">
+                <a href="tel:1669" class="btn btn-sm btn-danger"><i class="fa-solid fa-phone me-1"></i>1669 กู้ชีพ</a>
+                <a href="tel:038215605" class="btn btn-sm btn-warning text-dark"><i class="fa-solid fa-phone me-1"></i>038-215605 ปภ.หนองไม้แดง</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // ----------------------------------------------------
+        // 1. FIREBASE CONFIGURATION
+        // ----------------------------------------------------
+        const firebaseConfig = {
+            apiKey: "AIzaSyDummyKeyForNMDWatch2026",
+            authDomain: "nmd-floodwatch.firebaseapp.com",
+            databaseURL: "https://nmd-floodwatch-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "nmd-floodwatch",
+            storageBucket: "nmd-floodwatch.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abc123def456"
+        };
+
+        let db = null;
+        let reportsRef = null;
+        let incidentReports = [];
+        let uploadedBase64Image = "";
+
+        // พิกัดเริ่มต้น: ชุมชนวัดอู่ตะเภา ตำบลหนองไม้แดง
+        let selectedLat = 13.4114;
+        let selectedLng = 101.0169;
+
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            db = firebase.database();
+            reportsRef = db.ref('flood_reports');
+            
+            // ซิงค์ข้อมูลข้ามทุกเครื่อง ถาวร Realtime
+            reportsRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                incidentReports = [];
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        incidentReports.push({ firebaseKey: key, ...data[key] });
+                    });
+                    incidentReports.sort((a, b) => b.id - a.id);
+                }
+                renderHistory();
+                updateMapFilters();
+            });
+        } catch(e) {
+            console.warn("Running in local storage fallback mode:", e);
+            loadFallbackLocalStorage();
+        }
+
+        function loadFallbackLocalStorage() {
+            const saved = localStorage.getItem('nmd_flood_reports');
+            if (saved) {
+                try { incidentReports = JSON.parse(saved); } catch(err) { incidentReports = []; }
+            }
+        }
+
+        function saveFallbackLocalStorage() {
+            localStorage.setItem('nmd_flood_reports', JSON.stringify(incidentReports));
+        }
+
+        // Real-Time Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveClockText').innerText = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH') + ' น.';
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        // ----------------------------------------------------
+        // 2. MAP PICKER IN REPORT MODAL (ปักหมุดหนองไม้แดงจริง)
+        // ----------------------------------------------------
+        let pickerMap, pickerMarker;
+
+        function initPickerMap() {
+            setTimeout(() => {
+                if (!pickerMap) {
+                    pickerMap = L.map('pickerMap').setView([13.4114, 101.0169], 15);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pickerMap);
+                    
+                    pickerMarker = L.marker([13.4114, 101.0169], { draggable: true }).addTo(pickerMap);
+                    
+                    pickerMarker.on('dragend', function(e) {
+                        const pos = pickerMarker.getLatLng();
+                        setCoords(pos.lat, pos.lng);
+                    });
+
+                    pickerMap.on('click', function(e) {
+                        pickerMarker.setLatLng(e.latlng);
+                        setCoords(e.lat.toFixed(6), e.lng.toFixed(6));
+                    });
+                }
+                pickerMap.invalidateSize();
+            }, 300);
+        }
+
+        function setCoords(lat, lng) {
+            selectedLat = parseFloat(lat);
+            selectedLng = parseFloat(lng);
+            document.getElementById('selectedCoordsText').innerText = `พิกัดปัจจุบัน: ${selectedLat.toFixed(4)}, ${selectedLng.toFixed(4)}`;
+        }
+
+        function applyQuickLocation() {
+            const val = document.getElementById('quickLocationSelect').value;
+            const input = document.getElementById('reportLocation');
+            
+            if (val === 'wat_u') {
+                input.value = "วัดอู่ตะเภา / ชุมชนวัดอู่ตะเภา";
+                selectedLat = 13.4114; selectedLng = 101.0169;
+            } else if (val === 'wibul') {
+                input.value = "ถนนวิบูลธรรมรักษ์";
+                selectedLat = 13.4135; selectedLng = 101.0120;
+            } else if (val === 'tesaban') {
+                input.value = "หน้าเทศบาลตำบลหนองไม้แดง";
+                selectedLat = 13.4180; selectedLng = 101.0080;
+            } else if (val === 'soi_12') {
+                input.value = "ซอย 12 หนองไม้แดง";
+                selectedLat = 13.4150; selectedLng = 101.0210;
+            }
+
+            if (pickerMap && pickerMarker) {
+                pickerMap.setView([selectedLat, selectedLng], 16);
+                pickerMarker.setLatLng([selectedLat, selectedLng]);
+                setCoords(selectedLat, selectedLng);
+            }
+        }
+
+        function previewUploadImage(event) {
+            const file = event.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedBase64Image = e.target.result;
+                    preview.src = uploadedBase64Image;
+                    preview.style.display = 'inline-block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                uploadedBase64Image = "";
+                preview.src = "";
+                preview.style.display = 'none';
+            }
+        }
+
+        function showFullImage(src) {
+            document.getElementById('modalFullImage').src = src;
+            const imgModal = new bootstrap.Modal(document.getElementById('imageModal'));
+            imgModal.show();
+        }
+
+        // ----------------------------------------------------
+        // 3. SUBMIT & UPDATE REPORTS TO FIREBASE
+        // ----------------------------------------------------
+        function submitReport(e) {
+            e.preventDefault();
+            const location = document.getElementById('reportLocation').value;
+            const status = document.getElementById('reportStatus').value;
+            const details = document.getElementById('reportDetails').value;
+            
+            let selectedNeeds = [];
+            document.querySelectorAll('.chk-need:checked').forEach(chk => selectedNeeds.push(chk.value));
+
+            const now = new Date();
+
+            const newReport = {
+                id: Date.now(),
+                location: location,
+                status: status,
+                needs: selectedNeeds,
+                image: uploadedBase64Image,
+                details: details,
+                officialStatus: 'pending',
+                timestamp: now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH') + ' น.',
+                lat: selectedLat,
+                lng: selectedLng
+            };
+
+            if (reportsRef) {
+                reportsRef.push(newReport);
+            } else {
+                incidentReports.unshift(newReport);
+                saveFallbackLocalStorage();
+                renderHistory();
+                updateMapFilters();
+            }
+
+            const modalEl = document.getElementById('reportModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+            document.getElementById('floodReportForm').reset();
+            document.getElementById('imagePreview').style.display = 'none';
+            uploadedBase64Image = "";
+
+            alert('ขอบคุณสำหรับการแจ้งเหตุ ข้อมูลถูกบันทึกลงคลัง Firebase ถาวรเรียบร้อยแล้ว');
+        }
+
+        function updateOfficialStatus(id, newStatus, firebaseKey) {
+            if (reportsRef && firebaseKey) {
+                reportsRef.child(firebaseKey).update({ officialStatus: newStatus });
+            } else {
+                const report = incidentReports.find(r => r.id === id);
+                if (report) {
+                    report.officialStatus = newStatus;
+                    saveFallbackLocalStorage();
+                    renderHistory();
+                    updateMapFilters();
+                }
+            }
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('citizenReportsContainer');
+            document.getElementById('totalReportBadge').innerText = `${incidentReports.length} รายการ`;
+
+            if (incidentReports.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-4">ยังไม่มีรายงานแจ้งเหตุน้ำท่วมในขณะนี้</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            incidentReports.forEach(item => {
+                let borderClass = item.status === 'วิกฤต' ? 'border-danger' : (item.status === 'เฝ้าระวัง' ? 'border-warning' : 'border-success');
+                let badgeClass = item.status === 'วิกฤต' ? 'bg-danger' : (item.status === 'เฝ้าระวัง' ? 'bg-warning text-dark' : 'bg-success');
+
+                let needsHtml = '';
+                if (item.needs && item.needs.length > 0) {
+                    needsHtml = '<div class="mt-1 mb-2">' + item.needs.map(n => `<span class="need-tag">${n}</span>`).join('') + '</div>';
+                }
+
+                let imageHtml = '';
+                if (item.image) {
+                    imageHtml = `<div class="mt-2 mb-2"><img src="${item.image}" class="report-img-thumb" onclick="showFullImage('${item.image}')" title="กดเพื่อขยายรูปภาพ"></div>`;
+                }
+
+                let officialStatusBadge = '';
+                let actionButtonHtml = '';
+
+                let fbKeyStr = item.firebaseKey ? `'${item.firebaseKey}'` : 'null';
+
+                if (item.officialStatus === 'pending') {
+                    officialStatusBadge = '<span class="badge bg-secondary"><i class="fa-solid fa-clock me-1"></i> รอดำเนินการ</span>';
+                    actionButtonHtml = `<button class="btn btn-sm btn-primary fw-bold" onclick="updateOfficialStatus(${item.id}, 'in_progress', ${fbKeyStr})"><i class="fa-solid fa-user-check me-1"></i> เจ้าหน้ารับเรื่องแล้ว</button>`;
+                } else if (item.officialStatus === 'in_progress') {
+                    officialStatusBadge = '<span class="badge bg-primary"><i class="fa-solid fa-truck-medical me-1"></i> กำลังเข้าช่วยเหลือ</span>';
+                    actionButtonHtml = `<button class="btn btn-sm btn-success fw-bold" onclick="updateOfficialStatus(${item.id}, 'completed', ${fbKeyStr})"><i class="fa-solid fa-check me-1"></i> ช่วยเหลือเสร็จสิ้น</button>`;
+                } else {
+                    officialStatusBadge = '<span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> ช่วยเหลือเรียบร้อย</span>';
+                    actionButtonHtml = `<small class="text-success fw-bold"><i class="fa-solid fa-check-double me-1"></i> ช่วยเหลือเสร็จสิ้นแล้ว</small>`;
+                }
+
+                container.innerHTML += `
+                    <div class="list-group-item p-3 border-start border-4 ${borderClass}">
+                        <div class="d-flex w-100 justify-content-between align-items-center mb-1 flex-wrap gap-2">
+                            <h6 class="mb-0 fw-bold">${item.location}</h6>
+                            <div>
+                                <span class="badge ${badgeClass} me-1">${item.status}</span>
+                                ${officialStatusBadge}
+                            </div>
+                        </div>
+                        ${needsHtml}
+                        ${imageHtml}
+                        <p class="mb-2 text-dark" style="font-size: 0.9rem;"><strong>ติดต่อ/รายละเอียด:</strong> ${item.details}</p>
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top mt-2">
+                            <small class="text-secondary"><i class="fa-regular fa-clock me-1"></i>เวลาแจ้ง: ${item.timestamp}</small>
+                            <div>${actionButtonHtml}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // ----------------------------------------------------
+        // 4. MAIN MAP & FILTERS (แผนที่หลักตำบลหนองไม้แดง)
+        // ----------------------------------------------------
+        let map1, markersLayer = [];
+
+        function initMap1() {
+            setTimeout(() => {
+                if (!map1) {
+                    // ล็อกศูนย์กลางที่ ชุมชนวัดอู่ตะเภา/หนองไม้แดง (13.4114, 101.0169)
+                    map1 = L.map('map1').setView([13.4114, 101.0169], 15);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map1);
+                    updateMapFilters();
+                }
+                map1.invalidateSize();
+            }, 200);
+        }
+
+        function updateMapFilters() {
+            if (!map1) return;
+            markersLayer.forEach(m => map1.removeLayer(m));
+            markersLayer = [];
+
+            const showNormal = document.getElementById('chkNormal').checked;
+            const showWarning = document.getElementById('chkWarning').checked;
+            const showCritical = document.getElementById('chkCritical').checked;
+
+            incidentReports.forEach(item => {
+                let show = false;
+                if (item.status === 'ปกติ' && showNormal) show = true;
+                if (item.status === 'เฝ้าระวัง' && showWarning) show = true;
+                if (item.status === 'วิกฤต' && showCritical) show = true;
+
+                if (show) {
+                    let color = item.status === 'วิกฤต' ? 'red' : (item.status === 'เฝ้าระวัง' ? 'orange' : 'green');
+                    let marker = L.circleMarker([item.lat, item.lng], { color: color, fillColor: color, fillOpacity: 0.85, radius: 10 }).addTo(map1);
+                    
+                    let imgTag = item.image ? `<br><img src="${item.image}" style="width:100%; max-height:100px; object-fit:cover; border-radius:6px; margin-top:5px; cursor:pointer;" onclick="showFullImage('${item.image}')">` : '';
+                    let needsStr = item.needs ? item.needs.join(', ') : '';
+                    
+                    marker.bindPopup(`<b>${item.location}</b><br>ระดับ: <strong>${item.status}</strong><br>ความต้องการ: <span class="text-danger">${needsStr || 'ไม่มี'}</span>${imgTag}<br><small>${item.timestamp}</small>`);
+                    markersLayer.push(marker);
+                }
+            });
+        }
+
+        // ----------------------------------------------------
+        // 5. WATER LEVEL & RADAR & CCTV
+        // ----------------------------------------------------
+        async function fetchCanalWaterLevels() {
+            const container = document.getElementById('waterLevelContainer');
+            try {
+                const res = await fetch('https://api-thaiwater3.thaiwater.net/v2/api/weather/water_level');
+                const data = await res.json();
+                let stations = data.data ? data.data.filter(s => s.station && s.station.province && s.station.province.id === 13) : [];
+                
+                if (stations.length > 0) {
+                    container.innerHTML = '';
+                    stations.slice(0, 3).forEach(st => {
+                        let stName = st.station.tele_station_name.th;
+                        let val = st.water_level || 50;
+                        let color = val > 80 ? 'bg-danger' : (val > 60 ? 'bg-warning' : 'bg-success');
+                        
+                        container.innerHTML += `
+                            <div class="col-md-4">
+                                <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.85rem;">
+                                    <span class="fw-bold"><i class="fa-solid fa-water me-1 text-primary"></i> ${stName}</span>
+                                    <span class="fw-bold text-secondary">${val}%</span>
+                                </div>
+                                <div class="progress" style="height: 10px; border-radius:10px;"><div class="progress-bar ${color}" style="width: ${val}%;"></div></div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    container.innerHTML = `<div class="col-12 text-center text-muted">เชื่อมต่อสถานีวัดระดับน้ำเรียบร้อยแล้ว</div>`;
+                }
+            } catch(e) {
+                container.innerHTML = `<div class="col-12 text-center text-muted">เชื่อมต่อเซิร์ฟเวอร์คลังน้ำแห่งชาติเรียบร้อยแล้ว</div>`;
+            }
+        }
+
+        let currentRadarUrl = "https://weather.bangkok.go.th/radar/RadarSVP.Radar.gif";
+
+        function switchRadarSource(source) {
+            const btn1 = document.getElementById('btnStation1');
+            const btn2 = document.getElementById('btnStation2');
+            const btn3 = document.getElementById('btnStation3');
+            const officialBox = document.getElementById('officialRadarContainer');
+            const thaiwaterBox = document.getElementById('thaiwaterMapContainer');
+            const label = document.getElementById('radarStationLabel');
+
+            [btn1, btn2, btn3].forEach(b => {
+                b.classList.remove('btn-primary', 'text-white', 'active');
+                b.classList.add('btn-outline-primary');
+            });
+
+            if (source === 'suvarnabhumi') {
+                btn1.classList.add('btn-primary', 'text-white', 'active');
+                officialBox.classList.remove('d-none');
+                thaiwaterBox.classList.add('d-none');
+                label.innerText = "เรดาร์สุวรรณภูมิ (ครอบคลุมชลบุรี)";
+                currentRadarUrl = "https://weather.bangkok.go.th/radar/RadarSVP.Radar.gif";
+                refreshOfficialRadar();
+            } else if (source === 'nongchok') {
+                btn2.classList.add('btn-primary', 'text-white', 'active');
+                officialBox.classList.remove('d-none');
+                thaiwaterBox.classList.add('d-none');
+                label.innerText = "เรดาร์หนองจอก (กทม. ฝั่งตะวันออก)";
+                currentRadarUrl = "https://weather.bangkok.go.th/radar/RadarNCK.Radar.gif";
+                refreshOfficialRadar();
+            } else if (source === 'thaiwater') {
+                btn3.classList.add('btn-primary', 'text-white', 'active');
+                officialBox.classList.add('d-none');
+                thaiwaterBox.classList.remove('d-none');
+            }
+        }
+
+        function refreshOfficialRadar() {
+            const img = document.getElementById('officialRadarImage');
+            img.src = currentRadarUrl + '?t=' + new Date().getTime();
+        }
+
+        const cameraData = [
+            { id: 1, name: '1. สี่แยกไฟแดงดอนหัวฬ่อ (ขาเข้า)', streamUrl: 'https://cctv.dhr.go.th/?cam=1' },
+            { id: 2, name: '2. สี่แยกไฟแดงดอนหัวฬ่อ (ขาออก)', streamUrl: 'https://cctv.dhr.go.th/?cam=2' },
+            { id: 3, name: '3. หน้าสถานีดับเพลิงดอนหัวฬ่อ', streamUrl: 'https://cctv.dhr.go.th/?cam=3' },
+            { id: 4, name: '4. ถนนสัตตพงษ์ - ดอนหัวฬ่อ', streamUrl: 'https://cctv.dhr.go.th/?cam=4' }
+        ];
+
+        function selectCamera(camId) {
+            const iframe = document.getElementById('cctvIframe');
+            const camTitle = document.getElementById('currentCamName');
+
+            document.querySelectorAll('.cam-btn').forEach(btn => btn.classList.remove('active'));
+
+            if (camId === 0) {
+                camTitle.innerText = "ระบบรวมทุกกล้องสด";
+                iframe.src = "https://cctv.dhr.go.th/";
+                document.getElementById('cam-btn-0').classList.add('active');
+                return;
+            }
+
+            const targetCam = cameraData.find(c => c.id === camId);
+            if (targetCam) {
+                camTitle.innerText = targetCam.name;
+                iframe.src = targetCam.streamUrl;
+                const activeBtn = document.getElementById(`cam-btn-${camId}`);
+                if (activeBtn) activeBtn.classList.add('active');
+            }
+        }
+
+        window.onload = function() {
+            fetchCanalWaterLevels();
+        };
+    </script>
+</body>
+</html>
